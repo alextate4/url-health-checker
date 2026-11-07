@@ -69,6 +69,27 @@ public class DatabaseTests : IDisposable
         Assert.Equal(200, summary.AvgResponseTimeMs);
     }
 
+    // CONF-02 + D-023: retention moves old results out of the live table, but nothing is lost.
+    // The old check must leave the dashboard's window queries and still appear on the All-checks page.
+    [Fact]
+    public async Task Retention_archives_old_results_without_losing_them()
+    {
+        var db = new Database(ConnectionString);
+        await db.InitializeAsync();
+        await InsertCheckAt(DateTime.UtcNow.AddDays(-40), statusCode: 500, healthy: false);
+        await db.InsertCheckResultAsync(UrlId, new CheckResult(200, 80, true, null));
+
+        var moved = await db.ArchiveOlderThanAsync(DateTime.UtcNow.AddDays(-30));
+
+        Assert.Equal(1, moved);
+        var live = await db.GetChecksSinceAsync(UrlId, DateTime.UtcNow.AddDays(-365));
+        Assert.Equal(200, Assert.Single(live).StatusCode);
+        var all = await db.GetAllChecksAsync("checkedAt", descending: false, page: 1, pageSize: 10);
+        Assert.Equal(2, all.Total);
+        Assert.True(all.Rows[0].Archived);
+        Assert.Equal(500, all.Rows[0].StatusCode);
+    }
+
     // InsertCheckResultAsync always stamps "now", so an old row is written directly.
     private async Task InsertCheckAt(DateTime checkedAt, int statusCode, bool healthy)
     {
