@@ -419,3 +419,15 @@ button.icon:disabled {
   opacity: 0.4;
   cursor: wait;
 }
+
+/* Sparkline above the strip: response time in the brand color, health in the boxes below. */
+.trend {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sparkline {
+  color: var(--brand);
+  display: block;
+}

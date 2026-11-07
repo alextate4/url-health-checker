@@ -1,7 +1,7 @@
 // Run with: npm --prefix web test   (Node's built-in runner; no packages)
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { nextSort, sortArrow, pageCount, rowStatus, formatPercent, formatMs, checkTooltip } from './logic.js'
+import { nextSort, sortArrow, pageCount, rowStatus, formatPercent, formatMs, checkTooltip, sparklinePoints } from './logic.js'
 
 test('clicking the sorted column flips its direction, both ways', () => {
   assert.deepEqual(nextSort({ key: 'url', dir: 'asc' }, 'url'), { key: 'url', dir: 'desc' })
@@ -43,4 +43,20 @@ test('a real 0 shows as 0, and only a missing value shows a dash', () => {
 test('a check with no response says so in its tooltip', () => {
   const text = checkTooltip({ healthy: false, statusCode: null, responseTimeMs: 12, checkedAt: '2026-11-07T18:00:00Z' })
   assert.match(text, /^Unhealthy · no response · 12 ms · /)
+})
+
+test('sparkline: oldest on the left, slowest at the top, no-response checks skipped', () => {
+  const checks = [
+    { statusCode: 200, responseTimeMs: 100 },
+    { statusCode: null, responseTimeMs: 10000 }, // timeout: must not stretch the scale
+    { statusCode: 200, responseTimeMs: 300 },
+    { statusCode: 200, responseTimeMs: 200 },
+  ]
+  assert.equal(sparklinePoints(checks, 100, 20), '0,20 50,0 100,10')
+})
+
+test('sparkline: flat line when all equal, nothing when under two points', () => {
+  const same = [{ statusCode: 200, responseTimeMs: 50 }, { statusCode: 200, responseTimeMs: 50 }]
+  assert.equal(sparklinePoints(same, 10, 20), '0,10 10,10')
+  assert.equal(sparklinePoints([{ statusCode: 200, responseTimeMs: 50 }], 10, 20), '')
 })
