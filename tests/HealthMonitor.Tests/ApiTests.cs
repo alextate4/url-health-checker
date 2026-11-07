@@ -165,6 +165,24 @@ public class ApiTests
         Assert.Equal(7, (await Json(await client.GetAsync("/api/settings"))).GetProperty("retentionDays").GetInt32());
     }
 
+    // D-032: one row can be read on its own (a playing row refreshes itself with this).
+    [Fact]
+    public async Task Single_row_endpoint_returns_the_row_or_404()
+    {
+        using var app = new ApiFactory();
+        var client = app.CreateClient();
+        await client.GetAsync("/api/urls");
+        await app.Temp.Db.InsertCheckResultAsync(2, new CheckResult(200, 70, true, null));
+
+        var row = await Json(await client.GetAsync("/api/urls/2?window=24h"));
+        Assert.Equal(200, row.GetProperty("lastCheck").GetProperty("statusCode").GetInt32());
+        Assert.Equal(1, row.GetProperty("summary").GetProperty("checkCount").GetInt32());
+
+        await client.DeleteAsync("/api/urls/2");
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/api/urls/2")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/urls/3?window=2h")).StatusCode);
+    }
+
     // HIST-03: one URL's checks inside a window come back as a list.
     [Fact]
     public async Task Url_history_endpoint_returns_checks_in_the_window()

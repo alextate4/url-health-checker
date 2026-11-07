@@ -168,6 +168,18 @@ public class Database
         return rows;
     }
 
+    // One dashboard row, so a playing row can refresh itself on its own interval. Null if missing or removed.
+    public async Task<DashboardRow?> GetDashboardRowAsync(long id, DateTime since)
+    {
+        var status = (await GetUrlStatusesAsync()).SingleOrDefault(s => s.Id == id);
+        if (status is null)
+        {
+            return null;
+        }
+        var summary = await GetWindowSummaryAsync(id, since);
+        return new DashboardRow(status.Id, status.Url, status.IntervalSeconds, status.Paused, status.LastCheck, summary);
+    }
+
     // About 15 minutes of a 30s URL: it fits in one table cell, and the payload does not grow with the window.
     private const int RecentCount = 30;
 

@@ -94,6 +94,18 @@ app.MapPut("/api/settings", async (SettingsChange body, Database db) =>
     return Results.NoContent();
 });
 
+// One dashboard row: a playing row reloads itself with this after each of its own checks (D-032).
+app.MapGet("/api/urls/{id}", async (long id, string? window, Database db) =>
+{
+    if (!historyWindows.TryGetValue(window ?? "1h", out var span))
+    {
+        return Results.BadRequest(new { error = "window must be 1h, 24h, or 7d" });
+    }
+
+    var row = await db.GetDashboardRowAsync(id, DateTime.UtcNow - span);
+    return row is null ? Results.NotFound() : Results.Ok(row);
+});
+
 // Full history of one URL inside the window (HIST-03). Not polled by the UI, so it is not paged.
 app.MapGet("/api/urls/{id}/checks", async (long id, string? window, Database db) =>
 {
