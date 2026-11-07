@@ -13,7 +13,8 @@
 
   <!-- Builds the React UI on a fresh clone, so one `dotnet run` works without committing built files. -->
   <Target Name="BuildWebUi" BeforeTargets="Build">
-    <Exec Command="npm install" WorkingDirectory="$(MSBuildProjectDirectory)/../web" Condition="!Exists('$(MSBuildProjectDirectory)/../web/node_modules')" />
+    <!-- npm ci installs exactly what package-lock.json lists and never rewrites it. -->
+    <Exec Command="npm ci" WorkingDirectory="$(MSBuildProjectDirectory)/../web" Condition="!Exists('$(MSBuildProjectDirectory)/../web/node_modules')" />
     <Exec Command="npm run build" WorkingDirectory="$(MSBuildProjectDirectory)/../web" Condition="!Exists('$(MSBuildProjectDirectory)/wwwroot/index.html')" />
   </Target>
 

@@ -622,6 +622,10 @@
     {
       "date": "2026-11-07",
       "note": "Claude generated all Phase 1 code from the locked plan (D1-01..D1-28). It built and ran without a rewrite, so there is no bad suggestion to report. Read these two files first to own the behavior: server/UrlChecker.cs (how one check is timed and classified) and server/CheckScheduler.cs (how due URLs are picked and saved). Database.cs follows the plan's warning about SQLite integers: Dapper fills a flat StatusRow class, and the records are built by hand. I did not test the shortcut, so I cannot say it would have failed."
+    },
+    {
+      "date": "2026-11-07",
+      "note": "Phase 1 code review (AI reviewer) found 3 items. Checked each by hand: npm install -> npm ci and the generic Node .gitignore were real. The DB-path warning was overstated: `dotnet run --project server` already uses server/ as working directory; only running the .dll directly from another folder put the DB elsewhere. Fixed all three anyway (the DB path is now pinned to the content root in Program.cs). Claude's own .csproj edit dropped a space and broke the XML; the fresh-clone rebuild caught it before commit."
     }
   ]
 }
