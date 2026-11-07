@@ -1,3 +1,13 @@
+// Plain text for the browser's own tooltip; the word keeps it readable without color.
+function tooltip(c) {
+  return [
+    c.healthy ? 'Healthy' : 'Unhealthy',
+    c.statusCode ?? 'no response',
+    `${c.responseTimeMs} ms`,
+    new Date(c.checkedAt).toLocaleString(),
+  ].join(' · ')
+}
+
 export default function UrlRow({ url }) {
   const check = url.lastCheck
   const summary = url.summary
@@ -25,6 +35,17 @@ export default function UrlRow({ url }) {
         {summary.uptimePercent === null ? '—' : `${summary.uptimePercent}%`}
       </td>
       <td>{summary.avgResponseTimeMs === null ? '—' : `${summary.avgResponseTimeMs} ms`}</td>
+      <td>
+        {summary.recent.length === 0 ? (
+          '—'
+        ) : (
+          <div className="strip">
+            {summary.recent.map((c) => (
+              <span key={c.checkedAt} className={`box ${c.healthy ? 'healthy' : 'unhealthy'}`} title={tooltip(c)}></span>
+            ))}
+          </div>
+        )}
+      </td>
       <td>{check?.error}</td>
     </tr>
   )

@@ -73,6 +73,7 @@ export default function App() {
               <th>Last checked</th>
               <th>Uptime ({timeWindow})</th>
               <th>Avg response ({timeWindow})</th>
+              <th>Recent checks</th>
               <th>Error</th>
             </tr>
           </thead>

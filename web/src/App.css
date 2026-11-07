@@ -70,3 +70,21 @@ th {
   color: #fff;
   font-weight: bold;
 }
+
+.strip {
+  display: flex;
+  gap: 2px;
+}
+
+.box {
+  width: 6px;
+  height: 18px;
+}
+
+.box.healthy {
+  background: #2e9e4f;
+}
+
+.box.unhealthy {
+  background: #d64545;
+}
