@@ -3,11 +3,11 @@ gsd_state_version: "1.0"
 current_phase: 1
 current_phase_name: Walking Skeleton
 status: core-complete
-stopped_at: Core complete (Phases 1-2). Remaining: optional stretch (EXTRA-02, EXTRA-04, edge cases by priority)
-last_updated: "2026-11-07T19:34:02.009Z"
+stopped_at: "Core complete (Phases 1-2). Remaining: optional stretch (EXTRA-02, EXTRA-04, edge cases by priority)"
+last_updated: "2026-11-07T19:39:25.416Z"
 last_activity: 2026-11-07
-last_activity_desc: "README written; Phase 2 complete"
-state_head: 99a6f757cb6503f7b2d601a65da930f446a12a96
+last_activity_desc: README written; Phase 2 complete
+state_head: ac4482e41924f411dec7cbc97349dbda57ded973
 progress:
   total_phases: 2
   completed_phases: 0
@@ -91,6 +91,7 @@ None yet.
 | 6 | Phase 2 task 4 (re-scoped): soft delete, retention archive, All-checks page, sorting + 10/50/100 paging, colors, resizable table (inline) | 2026-11-07 | 2cfd1b7 | — |
 | 7 | UI refinements: play/pause (EXTRA-01), trash + plus icons, full-history modal (EXTRA-03), visible sort arrows, larger input (inline) | 2026-11-07 | 86a046c | — |
 | 8 | Phase 2 task 5: README (DLVR-03) with screenshot (inline) | 2026-11-07 | 99a6f75 | — |
+| 9 | Priority-1 edge cases: server-side URL and interval rules with SSRF guard (EC-002, EC-003) | 2026-11-07 | ac4482e | — |
 
 ## Deferred Items
 

@@ -6,8 +6,8 @@ which URLs are healthy right now and how each one has behaved over a chosen time
 
 ![Dashboard](docs/dashboard.png)
 
-- **Decision log:** [`log.json`](log.json) holds every decision (D-001…D-025) with the
-  alternatives and tradeoffs, every edge case (EC-001…EC-030), and notes on how AI was used.
+- **Decision log:** [`log.json`](log.json) holds every decision (D-001…D-026) with the
+  alternatives and tradeoffs, every edge case (EC-001…EC-031), and notes on how AI was used.
 - **Plain-English backend notes:** [`docs/CONCEPTS.md`](docs/CONCEPTS.md) explains each backend
   idea used here, with a JavaScript comparison.
 - **The brief as given to the AI:** [`docs/KICKOFF_PROMPT.md`](docs/KICKOFF_PROMPT.md).
@@ -92,7 +92,9 @@ server. Every commit tells one step of the story (`git log --oneline`).
 | GET | `/api/checks?sort=&dir=&page=&pageSize=&urlId=` | Every check, live + archived, paged |
 | GET / PUT | `/api/settings` `{retentionDays}` | Read / change retention |
 
-Unknown windows, sort keys, directions or page sizes return **400**. A sort key is looked up in a
+Bad input returns **400 with a reason**: URLs must be absolute http(s) and must not point to this
+machine or the local network (SSRF guard), intervals must be 10 s–1 day (`InputRules.cs`, D-026),
+and unknown windows, sort keys, directions or page sizes are refused. A sort key is looked up in a
 fixed list, so client text never reaches the SQL (D-024).
 
 ### Data model (SQLite)
@@ -161,15 +163,14 @@ fresh-clone build, and the UI layout (headless Chrome screenshots at 1280 / 1440
 ### What I didn't handle or test, and why
 
 Edge cases were logged as they came up and not built during the main pass, so the core could
-finish inside the cap. Five are fixed: EC-001 (overlapping checks), EC-008 and EC-023 (deleting a
-URL with history), EC-009 (re-timing applies on the next tick), and EC-011 (bodies are never
+finish inside the cap. Seven are fixed: EC-001 (overlapping checks), EC-002 and EC-003 (server-side
+interval and URL rules, including blocking internal addresses), EC-008 and EC-023 (deleting a URL
+with history), EC-009 (re-timing applies on the next tick), and EC-011 (bodies are never
 downloaded). The rest are deferred. The full list with descriptions is in
 `log.json` → `edgeCases`.
 
 | ID | Priority | Gap |
 |---|---|---|
-| EC-002 | 1 | Very short intervals are not refused by the API (the form enforces min 10 s) |
-| EC-003 | 1 | URLs are not validated on the server: bad schemes or garbage are recorded as unhealthy, and internal/localhost addresses are not blocked |
 | EC-004 | 2 | Duplicate URLs are allowed |
 | EC-005 | 2 | Stored in UTC; shown in the browser's local time with no zone label |
 | EC-006 | 2 | Expired or self-signed certificates are unhealthy, but the reason is the raw exception text, not a clear "certificate" message |
@@ -180,6 +181,7 @@ downloaded). The rest are deferred. The full list with descriptions is in
 | EC-021 | 2 | The window summary re-reads every row in the window on each 5 s poll |
 | EC-022 | 2 | No `User-Agent` header, so some sites (Wikipedia) answer 403 and look down |
 | EC-026 | 2 | Nothing is hard-deleted, so the database grows forever |
+| EC-031 | 2 | The internal-address block checks the host as written; a public name that *resolves* to a private IP gets through |
 | EC-010, 013, 015–019, 024, 025, 027–030 | 3 | Smaller gaps: possible SQLite write contention under heavy load, no undo for remove, OFFSET paging can shift rows, resized widths are not saved, retention days not validated on the server, polling continues in hidden tabs, and others |
 
 Not tested on purpose: the HTTP layer end to end (it would need `WebApplicationFactory` and another
@@ -198,7 +200,7 @@ above.
   multi-tenancy, containers, a design system, TypeScript, Postgres.
 
 **Next steps, in order**
-1. Server-side validation: URL format, minimum interval, duplicates, retention days (EC-002–004, EC-030).
+1. Finish input rules: duplicates, retention days, and resolve-then-check for internal addresses (EC-004, EC-030, EC-031).
 2. Send a `User-Agent` header and report TLS errors clearly (EC-022, EC-006).
 3. "Check now" button (EXTRA-02) and a response-time sparkline (EXTRA-04).
 4. A rollup table (per URL per hour) so 7-day stats don't re-scan raw rows (EC-021), plus a purge

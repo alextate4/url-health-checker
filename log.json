@@ -742,6 +742,37 @@
         "rejected": "stop button"
       },
       "status": "accepted"
+    },
+    {
+      "id": "D-026",
+      "date": "2026-11-07",
+      "area": "backend",
+      "title": "Server-side input rules in one static class (EC-002, EC-003)",
+      "decision": "InputRules.cs holds two pure functions that return an error message or null: IntervalProblem (10..86400 s) and UrlProblem (absolute http/https URL; not localhost, *.local, or a loopback/private/link-local/unique-local IP literal). POST and PATCH /api/urls return 400 {error} on a problem; api.js shows that message in the UI.",
+      "alternatives": [
+        {
+          "option": "DataAnnotations or FluentValidation",
+          "whyNot": "Attributes need extra wiring in Minimal APIs, and FluentValidation is a new package; two small functions are easier to read and defend."
+        },
+        {
+          "option": "Resolve DNS and block private results now",
+          "whyNot": "Correct only if done at connect time (DNS can change); that is a custom ConnectCallback, logged as EC-031."
+        },
+        {
+          "option": "Keep relying on the form's min/type=url",
+          "whyNot": "The API is reachable directly, so the browser's checks protect nothing."
+        }
+      ],
+      "rationale": "Fixes the two priority-1 edge cases with the smallest code and makes the SSRF risk visible in one place.",
+      "tradeoffs": "Literal-address SSRF only (EC-031). The 1-day maximum is a judgment call.",
+      "plain": "The server now checks what you type before saving it. It refuses addresses that are not real web addresses, addresses inside our own network, and check times that are too fast or too slow.",
+      "ai": {
+        "suggestedBy": "Claude (priority-1 edge cases after the core was done)",
+        "accepted": "Owner said yes to fixing priority-1 edge cases.",
+        "changed": null,
+        "rejected": null
+      },
+      "status": "accepted"
     }
   ],
   "edgeCases": [
@@ -759,16 +790,18 @@
       "priority": 1,
       "title": "Very short intervals",
       "description": "A 1-second interval would hammer the target and flood the database. Needs a minimum.",
-      "status": "deferred",
-      "plain": "If you check too often, you send too much traffic. We need a smallest allowed time."
+      "status": "fixed",
+      "plain": "If you check too often, you send too much traffic. We need a smallest allowed time.",
+      "fixedNote": "InputRules.IntervalProblem: POST and PATCH refuse intervals outside 10 s..86400 s with a 400 and a reason."
     },
     {
       "id": "EC-003",
       "priority": 1,
       "title": "Invalid URL input",
       "description": "Missing scheme, non-http(s) scheme, garbage text, or localhost/internal addresses entered in the form.",
-      "status": "deferred",
-      "plain": "A person can type a bad web address. The app must say no."
+      "status": "fixed",
+      "plain": "A person can type a bad web address. The app must say no.",
+      "fixedNote": "InputRules.UrlProblem: absolute http(s) URLs only; localhost, *.local, loopback, private, link-local (incl. 169.254.169.254) and unique-local IPv6 literals are refused (SSRF). Hostnames that resolve to private IPs are not caught (EC-031)."
     },
     {
       "id": "EC-004",
@@ -989,6 +1022,14 @@
       "description": "PUT /api/settings accepts 0 or negative days; 0 would archive every result on the next sweep (nothing is lost, it moves to the archive). The form uses min=1.",
       "status": "deferred",
       "plain": "The server does not stop a bad retention number, but the form in the page does."
+    },
+    {
+      "id": "EC-031",
+      "priority": 2,
+      "title": "A public hostname that resolves to a private IP passes the SSRF check",
+      "description": "InputRules checks the host as written. A DNS name pointing at 10.x or 127.0.0.1 (or DNS rebinding) is not caught. A full fix resolves the name and checks every address at check time, inside a custom SocketsHttpHandler.ConnectCallback.",
+      "status": "deferred",
+      "plain": "Someone could use a normal-looking web name that secretly points inside our network. We only block addresses that are written out directly."
     }
   ],
   "aiNotes": [
