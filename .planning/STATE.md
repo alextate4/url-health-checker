@@ -9,7 +9,7 @@ last_activity: 2026-11-07
 last_activity_desc: "Roadmap created (5 phases: 3 core, 2 stretch)"
 state_head: 9a41d16f09a0921eec40021a29e097f327ae4d28
 progress:
-  total_phases: 5
+  total_phases: 2
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-11-07)
 
 ## Current Position
 
-Phase: 1 of 5 (Walking Skeleton)
+Phase: 1 of 2 (Walking Skeleton)
 Plan: 0 of TBD in current phase
 Status: Ready to plan
 Last activity: 2026-11-07 — Roadmap created (5 phases: 3 core, 2 stretch)
@@ -61,9 +61,9 @@ Decisions are logged in PROJECT.md Key Decisions table (full detail in `log.json
 Recent decisions affecting current work:
 
 - [Roadmap]: Phase 1 is a walking skeleton (seed → scheduled check → SQLite → React row, one `dotnet run`); later phases widen it
-- [Roadmap]: Core is complete at the end of Phase 3, including the README (DLVR-03)
-- [Roadmap]: Stretch tier (D-012): Phase 4 extras in order EXTRA-01→04, then Phase 5 edge cases; cut from the bottom at the cap
-- [D-006]: One BackgroundService + PeriodicTimer "what's due" loop; concurrency cap added in Phase 3 (CHK-05)
+- [Roadmap]: Core is complete at the end of Phase 2 (old Phases 2+3 merged, D-015), including the README (DLVR-03)
+- [Roadmap]: Stretch tier (D-012, D-015): extras EXTRA-01→04, then edge cases, as /gsd-quick tasks (no phase); cut from the bottom at the cap
+- [D-006]: One BackgroundService + PeriodicTimer "what's due" loop; concurrency cap added in Phase 2 (CHK-05)
 - [D-009]: Core-only xUnit tests land in Phase 2, once the history window read-back exists
 
 ### Pending Todos
@@ -73,8 +73,9 @@ None yet.
 ### Blockers/Concerns
 
 - 3-hour build cap: set `log.json` → `timebox.buildStartedAt` when the first line of app code is written in Phase 1.
-- If Phase 4 or 5 is cut, update the README "what was cut" and "next steps" sections before stopping.
+- If stretch work is cut, update the README "what was cut" and "next steps" sections before stopping.
 - `workflow.ui_safety_gate` turned off 2026-11-07 (D-013) — no UI-SPEC needed before `/gsd-plan-phase`.
+- Process trimmed 2026-11-07 (D-015): plan-check, discuss, pattern-mapper, UI/AI/API-coverage, assumption-delta, spec-less probe, security threat model, and post-planning gap gates are off. Code review + verifier stay on for Phase 1 only, then turn off (`workflow.code_review=false`, `workflow.verifier=false`). Phase 2 runs as `/gsd-quick` tasks.
 - Pin React 18 when scaffolding Vite (template defaults to React 19).
 - Toolchain checked 2026-11-07: .NET SDK 10.0.403 and Node v24 are installed.
 

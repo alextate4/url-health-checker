@@ -389,6 +389,41 @@
         "rejected": null
       },
       "status": "accepted"
+    },
+    {
+      "id": "D-015",
+      "date": "2026-11-07",
+      "area": "process",
+      "title": "Cut GSD process overhead to protect the 3-hour cap",
+      "decision": "Merge old Phases 2 (Health Over Time) and 3 (URL Management, Retention & README) into one Phase 2 \"Features & README\", run as /gsd-quick tasks. Old Phases 4 (extras) and 5 (edge cases) are no longer phases: they become /gsd-quick tasks done only if time remains. In .planning/config.json, turn off plan_check, discuss (skip_discuss), pattern_mapper, ui_phase, ai_integration_phase, api_coverage_gate, assumption_delta, specless_probe_fallback, security_enforcement, and post_planning_gaps. Code review and the goal verifier stay on for Phase 1 only, then go off.",
+      "alternatives": [
+        {
+          "option": "Keep the full discuss → plan → check → execute → verify loop for all 5 phases",
+          "whyNot": "The ceremony alone could use up most of the 3-hour cap; about an hour went to process before any code."
+        },
+        {
+          "option": "Merge Phases 2–5 into one phase",
+          "whyNot": "Mixes core work with stretch work, so the plan gets bigger and it is less clear where to stop."
+        },
+        {
+          "option": "Keep 5 phases but run each as /gsd-quick",
+          "whyNot": "Keeps phase bookkeeping for phases that may be cut anyway."
+        },
+        {
+          "option": "Turn code review and verifier off now",
+          "whyNot": "Phase 1 sets up the base that everything else builds on, so one check there is worth the time."
+        }
+      ],
+      "rationale": "The phases left are small and the stack and decisions are locked, so the extra planning gates add time but little value. CLAUDE.md already says to log edge cases rather than build them, so the edge-case probe and the threat model repeat that rule.",
+      "tradeoffs": "Fewer automatic checks on plans for Phase 2 and later, so mistakes are found by running the app and the core tests instead. The Phase 1 plan was already started with the old settings, so it still has a threat model and edge-case items.",
+      "plain": "The planning tool was doing many extra checks. They took more time than the code. We turned most of them off. We joined the last steps into one. Extra features happen only if time is left.",
+      "ai": {
+        "suggestedBy": "Claude listed the overhead sources; owner asked to apply them",
+        "accepted": "All of it: merge 2+3, drop 4+5 as phases, gates off, review and verifier for Phase 1 only (both picked from Claude's recommended options).",
+        "changed": null,
+        "rejected": null
+      },
+      "status": "accepted"
     }
   ],
   "edgeCases": [
