@@ -4,10 +4,10 @@ current_phase: 1
 current_phase_name: Walking Skeleton
 status: executing
 stopped_at: Phase 1 built (quick 261107-gje); next is Phase 2 via /gsd-quick
-last_updated: "2026-11-07T18:11:42.030Z"
+last_updated: "2026-11-07T18:18:08.324Z"
 last_activity: 2026-11-07
 last_activity_desc: "Completed quick task 261107-gje: Phase 1 walking skeleton"
-state_head: c3752bf8b8620aa37dbc0eff46f06c872568ba9e
+state_head: de3bd79b026cc17a6f62f724f6ec53d5a4d09525
 progress:
   total_phases: 2
   completed_phases: 0
@@ -84,6 +84,7 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 261107-gje | Phase 1 walking skeleton: seeded URLs checked on schedule, saved in SQLite, React table, one dotnet run | 2026-11-07 | c3752bf | [261107-gje-phase-1-walking-skeleton](./quick/261107-gje-phase-1-walking-skeleton/) |
+| 2 | Phase 1 review fixes: npm ci, lean .gitignore, DB path pinned to content root | 2026-11-07 | de3bd79 | — |
 
 ## Deferred Items
 
