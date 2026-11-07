@@ -123,7 +123,7 @@ string and get plain objects back.
 
 ---
 
-## The .csproj and the solution file
+## .csproj and the solution file
 
 **What it is:** A `.csproj` file describes one C# project. It lists the .NET version and the
 packages. A solution file (`HealthMonitor.slnx`) lists the projects that belong together.
