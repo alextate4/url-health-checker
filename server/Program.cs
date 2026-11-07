@@ -145,6 +145,21 @@ app.MapPatch("/api/urls/{id}", async (long id, UrlChange body, Database db) =>
     return Results.NoContent();
 });
 
+// "Check now" (EXTRA-02): one check right away, saved like any other, so it also appears in the
+// history and resets the URL's next due time. Works on a paused URL too: it is a manual request.
+app.MapPost("/api/urls/{id}/check", async (long id, Database db, IHttpClientFactory httpClientFactory, CancellationToken token) =>
+{
+    var url = await db.GetLiveUrlAsync(id);
+    if (url is null)
+    {
+        return Results.NotFound();
+    }
+
+    var result = await new UrlChecker(httpClientFactory.CreateClient("checker")).CheckAsync(url, token);
+    await db.InsertCheckResultAsync(id, result);
+    return Results.Ok(result);
+});
+
 // Soft delete: the URL leaves the dashboard and stops being checked; its history stays (D-023).
 app.MapDelete("/api/urls/{id}", async (long id, Database db) =>
     await db.SoftDeleteUrlAsync(id) ? Results.NoContent() : Results.NotFound());

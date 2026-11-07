@@ -27,6 +27,11 @@ export function setPaused(id, paused) {
   return send('PATCH', `/api/urls/${id}`, { paused })
 }
 
+// Runs one check now; resolves when the result is saved.
+export function checkNow(id) {
+  return send('POST', `/api/urls/${id}/check`)
+}
+
 export function removeUrl(id) {
   return send('DELETE', `/api/urls/${id}`)
 }

@@ -155,7 +155,7 @@ button.icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 4px;
+  padding: 3px;
   background: none;
   border: 1px solid transparent;
   border-radius: 4px;
@@ -199,7 +199,7 @@ button.primary:hover {
 .recent {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
 }
 
 .sort-arrow {
@@ -383,7 +383,7 @@ td.url-cell {
 
 /* Long error texts (like the DNS message) are cut with "…"; the full text is in the tooltip. */
 td.error-cell {
-  max-width: 130px;
+  max-width: 110px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -413,4 +413,9 @@ button.secondary:hover {
 
 .window-picker .refresh {
   margin-left: 12px;
+}
+
+button.icon:disabled {
+  opacity: 0.4;
+  cursor: wait;
 }

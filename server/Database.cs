@@ -249,6 +249,14 @@ public class Database
         });
     }
 
+    // The URL text of a live (not removed) URL, or null. Used by "check now".
+    public async Task<string?> GetLiveUrlAsync(long id)
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        return await connection.ExecuteScalarAsync<string?>(
+            "SELECT url FROM urls WHERE id = @Id AND deleted_at IS NULL", new { Id = id });
+    }
+
     // Duplicate check (EC-004): case and a trailing slash do not make a different URL.
     // Removed URLs do not count, so a removed URL can be added again.
     public async Task<bool> LiveUrlExistsAsync(string url)

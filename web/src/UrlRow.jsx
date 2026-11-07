@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { changeInterval, removeUrl, setPaused } from './api.js'
-import { TrashIcon, PlayIcon, PauseIcon, HistoryIcon } from './icons.jsx'
+import { changeInterval, removeUrl, setPaused, checkNow } from './api.js'
+import { TrashIcon, PlayIcon, PauseIcon, HistoryIcon, CheckNowIcon } from './icons.jsx'
 import HistoryModal from './HistoryModal.jsx'
 import { rowStatus, formatPercent, formatMs, checkTooltip } from './logic.js'
 
@@ -36,9 +36,19 @@ export default function UrlRow({ url, onChanged, onError }) {
   const check = url.lastCheck
   const summary = url.summary
   const [showHistory, setShowHistory] = useState(false)
+  // A check can take up to the 10 s timeout; disable the button meanwhile so it is not clicked twice.
+  const [checking, setChecking] = useState(false)
 
   // The word next to the dot keeps the status readable without color.
   const status = rowStatus(url)
+
+  function handleCheckNow() {
+    setChecking(true)
+    checkNow(url.id)
+      .then(onChanged)
+      .catch((err) => onError(`Could not check ${url.url}: ${err.message}`))
+      .finally(() => setChecking(false))
+  }
 
   function handlePlayPause() {
     setPaused(url.id, !url.paused)
@@ -103,6 +113,16 @@ export default function UrlRow({ url, onChanged, onError }) {
       </td>
       <td>
         <div className="actions">
+          <button
+            type="button"
+            className="icon"
+            onClick={handleCheckNow}
+            disabled={checking}
+            aria-label={`Check ${url.url} now`}
+            title={checking ? 'Checking…' : 'Check now'}
+          >
+            <CheckNowIcon />
+          </button>
           <button
             type="button"
             className="icon"
