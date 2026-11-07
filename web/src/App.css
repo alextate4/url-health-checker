@@ -121,8 +121,16 @@ tbody tr:hover {
 
 .add-url input[type='url'] {
   flex: 1;
-  max-width: 420px;
-  padding: 4px 8px;
+  max-width: 640px;
+  padding: 10px 12px;
+  font-size: 17px;
+  border: 1px solid var(--header-border);
+  border-radius: 6px;
+}
+
+.add-url input[type='number'] {
+  padding: 8px 6px;
+  font-size: 16px;
 }
 
 .add-url input[type='number'],
@@ -138,11 +146,90 @@ tbody tr:hover {
   white-space: nowrap;
 }
 
-button.remove {
-  color: #d64545;
+/* Icon-only buttons: trash, play/pause, history. */
+button.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
   background: none;
-  border: 1px solid #d64545;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--brand-dark);
   cursor: pointer;
+}
+
+button.icon:hover {
+  background: var(--header-bg);
+  border-color: var(--header-border);
+}
+
+button.icon.remove {
+  color: #d64545;
+}
+
+button.icon.remove:hover {
+  background: #fde2e2;
+  border-color: #f5b5b5;
+}
+
+button.primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--brand);
+  border: 1px solid var(--brand);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button.primary:hover {
+  background: var(--brand-dark);
+}
+
+.every,
+.recent {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sort-arrow {
+  margin-left: 6px;
+}
+
+.sort-arrow.idle {
+  color: #8aa89a;
+}
+
+.history-modal {
+  width: min(1000px, 92vw);
+  max-height: 85vh;
+  border: 1px solid var(--header-border);
+  border-radius: 8px;
+  padding: 16px 20px;
+}
+
+.history-modal::backdrop {
+  background: rgba(15, 40, 35, 0.45);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.modal-header h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  color: var(--brand);
+  overflow-wrap: anywhere;
 }
 
 .app-header {
