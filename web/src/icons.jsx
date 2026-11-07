@@ -26,22 +26,6 @@ export function TrashIcon() {
   )
 }
 
-export function PlayIcon() {
-  return (
-    <Svg>
-      <path d="M7 4l13 8-13 8z" fill="currentColor" />
-    </Svg>
-  )
-}
-
-export function PauseIcon() {
-  return (
-    <Svg>
-      <path d="M7 4h3v16H7zM14 4h3v16h-3z" fill="currentColor" />
-    </Svg>
-  )
-}
-
 export function HistoryIcon() {
   return (
     <Svg>
@@ -54,14 +38,6 @@ export function RefreshIcon() {
   return (
     <Svg>
       <path d="M21 12a9 9 0 1 1-2.6-6.4L21 8M21 3v5h-5" />
-    </Svg>
-  )
-}
-
-export function CheckNowIcon() {
-  return (
-    <Svg>
-      <path d="M13 2L4 14h7l-1 8 9-12h-7z" />
     </Svg>
   )
 }

@@ -137,18 +137,12 @@ tbody tr:hover {
   font-size: 16px;
 }
 
-.add-url input[type='number'],
-.interval input {
+.add-url input[type='number'] {
   width: 64px;
   margin: 0 4px;
   padding: 2px 4px;
 }
 
-.interval {
-  display: flex;
-  align-items: center;
-  white-space: nowrap;
-}
 
 /* Icon-only buttons: trash, play/pause, history. */
 button.icon {
@@ -389,9 +383,6 @@ td.error-cell {
   white-space: nowrap;
 }
 
-.interval input {
-  width: 52px;
-}
 
 /* Outlined button in the brand color, for secondary actions like Refresh. */
 button.secondary {
@@ -434,7 +425,9 @@ button.icon:disabled {
   font-size: 13px;
 }
 
-.refresh-seconds {
-  width: 48px;
-  margin: 0 4px;
+
+.settings {
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }

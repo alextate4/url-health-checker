@@ -1,4 +1,4 @@
-// The three calls that change the URL list. Each one throws on a non-2xx answer,
+// The calls that change the URL list or the settings. Each one throws on a non-2xx answer,
 // so the caller can show the error instead of failing quietly.
 
 async function send(method, path, body) {
@@ -14,27 +14,11 @@ async function send(method, path, body) {
   }
 }
 
-export function addUrl(url, intervalSeconds) {
-  return send('POST', '/api/urls', { url, intervalSeconds })
+export function addUrl(url) {
+  return send('POST', '/api/urls', { url })
 }
 
-// Not called "setInterval": that would hide the browser's timer function.
-export function changeInterval(id, intervalSeconds) {
-  return send('PATCH', `/api/urls/${id}`, { intervalSeconds })
-}
-
-export function setPaused(id, paused) {
-  return send('PATCH', `/api/urls/${id}`, { paused })
-}
-
-// One dashboard row, for a playing row that refreshes itself.
-export async function getUrlRow(id, timeWindow) {
-  const response = await fetch(`/api/urls/${id}${query({ window: timeWindow })}`)
-  if (!response.ok) throw new Error(`HTTP ${response.status}`)
-  return response.json()
-}
-
-// Runs one check now; resolves when the result is saved.
+// Runs one check now (each row's refresh button); resolves when the result is saved.
 export function checkNow(id) {
   return send('POST', `/api/urls/${id}/check`)
 }
@@ -43,10 +27,22 @@ export function removeUrl(id) {
   return send('DELETE', `/api/urls/${id}`)
 }
 
-export async function getRetentionDays() {
+async function getSettings() {
   const response = await fetch('/api/settings')
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
-  return (await response.json()).retentionDays
+  return response.json()
+}
+
+export async function getRetentionDays() {
+  return (await getSettings()).retentionDays
+}
+
+export async function getCheckIntervalSeconds() {
+  return (await getSettings()).checkIntervalSeconds
+}
+
+export function saveCheckIntervalSeconds(checkIntervalSeconds) {
+  return send('PUT', '/api/settings', { checkIntervalSeconds })
 }
 
 export function saveRetentionDays(retentionDays) {

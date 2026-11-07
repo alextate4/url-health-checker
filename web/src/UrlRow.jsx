@@ -1,67 +1,12 @@
-import { useEffect, useState } from 'react'
-import { changeInterval, removeUrl, setPaused, checkNow, getUrlRow } from './api.js'
-import { TrashIcon, PlayIcon, PauseIcon, HistoryIcon, CheckNowIcon } from './icons.jsx'
+import { useState } from 'react'
+import { removeUrl, checkNow } from './api.js'
+import { TrashIcon, HistoryIcon, RefreshIcon } from './icons.jsx'
 import HistoryModal from './HistoryModal.jsx'
-import { rowStatus, formatPercent, formatMs, checkTooltip, rowRefreshDelayMs } from './logic.js'
+import { rowStatus, formatPercent, formatMs, checkTooltip } from './logic.js'
 
-// Edits the interval in place. The scheduler picks up the new value on its next tick (URL-03).
-function IntervalEditor({ url, onChanged, onError }) {
-  const [value, setValue] = useState(url.intervalSeconds)
-
-  function handleSubmit(event) {
-    event.preventDefault()
-    changeInterval(url.id, Number(value))
-      .then(onChanged)
-      .catch((err) => onError(`Could not change interval: ${err.message}`))
-  }
-
-  return (
-    <form className="interval" onSubmit={handleSubmit}>
-      <input
-        type="number"
-        required
-        min="10"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        aria-label={`Check interval for ${url.url} in seconds`}
-      />
-      s
-      {/* Shown only after an edit, so the row stays quiet otherwise. */}
-      {Number(value) !== url.intervalSeconds && <button type="submit">Save</button>}
-    </form>
-  )
-}
-
-export default function UrlRow({ url: fromTable, timeWindow, onChanged, onError }) {
-  // The row's own copy. A table reload replaces it; while playing, the row also reloads itself
-  // shortly after each of its own checks is due, on its "Every" interval (D-032).
-  const [url, setUrl] = useState(fromTable)
-  const [rowReloads, setRowReloads] = useState(0)
-  useEffect(() => setUrl(fromTable), [fromTable])
-
-  const lastCheckedAt = url.lastCheck?.checkedAt
-  useEffect(() => {
-    if (url.paused) return undefined // paused: no checks happen, so there is nothing new to show
-    let ignore = false
-    const timer = setTimeout(() => {
-      getUrlRow(url.id, timeWindow)
-        .then((row) => {
-          if (!ignore) setUrl(row)
-        })
-        .catch(() => {
-          // A failed or 404 (removed elsewhere) row reload is not worth an error banner;
-          // the next table reload shows the real state.
-        })
-        .finally(() => {
-          if (!ignore) setRowReloads((n) => n + 1) // schedule the next one even if nothing changed
-        })
-    }, rowRefreshDelayMs(lastCheckedAt, url.intervalSeconds, Date.now()))
-    return () => {
-      ignore = true
-      clearTimeout(timer)
-    }
-  }, [url.id, url.paused, url.intervalSeconds, lastCheckedAt, timeWindow, rowReloads])
-
+// One dashboard row. Every URL is checked on the one global interval (D-033); the refresh button
+// checks this URL right now.
+export default function UrlRow({ url, onChanged, onError }) {
   const check = url.lastCheck
   const summary = url.summary
   const [showHistory, setShowHistory] = useState(false)
@@ -79,14 +24,8 @@ export default function UrlRow({ url: fromTable, timeWindow, onChanged, onError 
       .finally(() => setChecking(false))
   }
 
-  function handlePlayPause() {
-    setPaused(url.id, !url.paused)
-      .then(onChanged)
-      .catch((err) => onError(`Could not ${url.paused ? 'resume' : 'pause'}: ${err.message}`))
-  }
-
   function handleRemove() {
-    // Soft delete (D-023): the URL stops being checked, but its history stays on the All-checks page.
+    // Soft delete (D-023): the URL stops being checked, but its history stays in the Archive.
     if (!confirm(`Stop monitoring ${url.url}? Its history stays in the Archive.`)) return
     removeUrl(url.id)
       .then(onChanged)
@@ -103,9 +42,6 @@ export default function UrlRow({ url: fromTable, timeWindow, onChanged, onError 
         </div>
       </td>
       <td className="url-cell">{url.url}</td>
-      <td>
-        <IntervalEditor url={url} onChanged={onChanged} onError={onError} />
-      </td>
       <td>{check?.statusCode ?? '—'}</td>
       <td className="nowrap">{check ? `${check.responseTimeMs} ms` : '—'}</td>
       <td className="nowrap">{check ? new Date(check.checkedAt).toLocaleTimeString() : '—'}</td>
@@ -150,16 +86,7 @@ export default function UrlRow({ url: fromTable, timeWindow, onChanged, onError 
             aria-label={`Check ${url.url} now`}
             title={checking ? 'Checking…' : 'Check now'}
           >
-            <CheckNowIcon />
-          </button>
-          <button
-            type="button"
-            className="icon"
-            onClick={handlePlayPause}
-            aria-label={url.paused ? `Resume checking ${url.url}` : `Pause checking ${url.url}`}
-            title={url.paused ? 'Resume' : 'Pause'}
-          >
-            {url.paused ? <PlayIcon /> : <PauseIcon />}
+            <RefreshIcon />
           </button>
           <button
             type="button"

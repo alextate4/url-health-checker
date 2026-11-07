@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import UrlRow from './UrlRow.jsx'
 import AddUrlForm from './AddUrlForm.jsx'
 import RetentionSetting from './RetentionSetting.jsx'
+import CheckIntervalSetting from './CheckIntervalSetting.jsx'
 import { SortHeader, PlainHeader, Pager } from './TableControls.jsx'
 import { query } from './api.js'
-import { tableRefreshSeconds } from './logic.js'
 import { RefreshIcon } from './icons.jsx'
 
 const WINDOWS = ['1h', '24h', '7d']
@@ -20,11 +20,12 @@ export default function Dashboard({ onError }) {
   // Bumped after an add, re-time, or remove, so the list reloads at once instead of on the next poll.
   const [version, setVersion] = useState(0)
   const refresh = () => setVersion((v) => v + 1)
-  // Whole-table auto-refresh: picks up added/removed URLs, order and paging. Independent of play/pause;
-  // each playing row also refreshes itself on its own "Every" interval (D-032). Only reads; never checks.
+  // ONE rate (D-033): the server checks every URL every checkSeconds, and auto-refresh re-reads the
+  // table at that same rate, so each refresh can show new results. Auto-refresh only reads.
   const [autoRefresh, setAutoRefresh] = useState(true)
-  const [refreshInput, setRefreshInput] = useState('30')
-  const refreshMs = tableRefreshSeconds(refreshInput) * 1000
+  const [checkSeconds, setCheckSeconds] = useState(30)
+  const onIntervalLoaded = useCallback((seconds) => setCheckSeconds(seconds), [])
+  const refreshMs = checkSeconds * 1000
 
   useEffect(() => {
     // Set on cleanup, so a slow reply for old settings cannot overwrite the new data.
@@ -85,22 +86,15 @@ export default function Dashboard({ onError }) {
           <button type="button" className="secondary refresh" onClick={refresh}>
             <RefreshIcon /> Refresh
           </button>
-          <label className="auto-refresh">
+          <label className="auto-refresh" title={`Reloads the table every ${checkSeconds} s, the same rate as the checks`}>
             <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />
-            Auto-refresh table every
+            Auto-refresh
           </label>
-          <input
-            type="number"
-            className="refresh-seconds"
-            min="5"
-            value={refreshInput}
-            disabled={!autoRefresh}
-            onChange={(e) => setRefreshInput(e.target.value)}
-            aria-label="Table auto-refresh interval in seconds"
-          />
-          s
         </div>
-        <RetentionSetting onError={onError} />
+        <div className="settings">
+          <CheckIntervalSetting onLoaded={onIntervalLoaded} onError={onError} />
+          <RetentionSetting onError={onError} />
+        </div>
       </div>
       {data === null ? (
         <p>Loading…</p>
@@ -122,8 +116,7 @@ export default function Dashboard({ onError }) {
                 <tr>
                   {header('Status', 'status')}
                   {header('URL', 'url')}
-                  {header('Every', 'interval')}
-                  {header('Code', 'statusCode')}
+                    {header('Code', 'statusCode')}
                   {header('Response time', 'responseTimeMs')}
                   {header('Last checked', 'lastChecked')}
                   {header(`Uptime (${timeWindow})`, 'uptime')}
@@ -135,7 +128,7 @@ export default function Dashboard({ onError }) {
               </thead>
               <tbody>
                 {data.rows.map((u) => (
-                  <UrlRow key={u.id} url={u} timeWindow={timeWindow} onChanged={refresh} onError={onError} />
+                  <UrlRow key={u.id} url={u} onChanged={refresh} onError={onError} />
                 ))}
               </tbody>
             </table>

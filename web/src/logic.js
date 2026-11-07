@@ -18,9 +18,8 @@ export function pageCount(total, pageSize) {
   return Math.max(1, Math.ceil(total / pageSize))
 }
 
-// The status word and dot color for a dashboard row. Paused wins, because the last result is old.
+// The status word and dot color for a dashboard row: Pending until the first check, then the last result.
 export function rowStatus(url) {
-  if (url.paused) return { word: 'Paused', className: 'pending' }
   if (!url.lastCheck) return { word: 'Pending', className: 'pending' }
   return url.lastCheck.healthy
     ? { word: 'Healthy', className: 'healthy' }
@@ -44,24 +43,4 @@ export function checkTooltip(check) {
     `${check.responseTimeMs} ms`,
     new Date(check.checkedAt).toLocaleString(),
   ].join(' · ')
-}
-
-// The whole-table auto-refresh interval the user typed, in seconds. Anything below 5 s (the
-// scheduler's tick) or not a number falls back to a safe value, so a typo cannot hammer the server.
-export function tableRefreshSeconds(value) {
-  const seconds = Math.round(Number(value))
-  if (!Number.isFinite(seconds) || seconds <= 0) return 30
-  return Math.max(5, seconds)
-}
-
-// When a playing row should reload itself, in ms from now. The server checks a URL once its
-// interval has passed, on a 5 s tick, so the new result lands up to ~5 s (+ the check time)
-// after it is due. Aim a little after that. A never-checked URL is checked on the next tick.
-// If the result is already late, try again soon, but not more often than every 3 s.
-export const ROW_SETTLE_MS = 6000
-
-export function rowRefreshDelayMs(lastCheckedAt, intervalSeconds, nowMs) {
-  if (!lastCheckedAt) return ROW_SETTLE_MS
-  const dueMs = Date.parse(lastCheckedAt) + intervalSeconds * 1000
-  return Math.max(3000, dueMs + ROW_SETTLE_MS - nowMs)
 }
