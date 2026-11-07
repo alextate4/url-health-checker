@@ -40,6 +40,7 @@ var dashboardSorts = new Dictionary<string, Func<DashboardRow, object?>>
     ["id"] = r => r.Id,
     ["url"] = r => r.Url,
     ["interval"] = r => r.IntervalSeconds,
+    ["paused"] = r => r.Paused,
     ["status"] = r => r.LastCheck?.Healthy,
     ["statusCode"] = r => r.LastCheck?.StatusCode,
     ["responseTimeMs"] = r => r.LastCheck?.ResponseTimeMs,
@@ -69,7 +70,8 @@ app.MapGet("/api/urls", async (string? window, string? sort, string? dir, int? p
 });
 
 // Every saved result, live and archived, including removed URLs: nothing is ever hidden for good.
-app.MapGet("/api/checks", async (string? sort, string? dir, int? page, int? pageSize, Database db) =>
+// ?urlId= narrows it to one URL for the history modal.
+app.MapGet("/api/checks", async (string? sort, string? dir, int? page, int? pageSize, long? urlId, Database db) =>
 {
     var paging = ReadPaging(sort ?? "checkedAt", dir ?? "desc", page, pageSize, Database.HistorySortColumns.Keys);
     if (paging is null)
@@ -77,7 +79,7 @@ app.MapGet("/api/checks", async (string? sort, string? dir, int? page, int? page
         return Results.BadRequest(new { error = PagingError });
     }
 
-    return Results.Ok(await db.GetAllChecksAsync(paging.Sort, paging.Descending, paging.Page, paging.PageSize));
+    return Results.Ok(await db.GetAllChecksAsync(paging.Sort, paging.Descending, paging.Page, paging.PageSize, urlId));
 });
 
 app.MapGet("/api/settings", async (Database db) => Results.Ok(new { retentionDays = await db.GetRetentionDaysAsync() }));
@@ -106,8 +108,23 @@ app.MapPost("/api/urls", async (NewUrl body, Database db) =>
     return Results.Created($"/api/urls/{id}", new { id });
 });
 
-app.MapPatch("/api/urls/{id}", async (long id, IntervalChange body, Database db) =>
-    await db.UpdateIntervalAsync(id, body.IntervalSeconds) ? Results.NoContent() : Results.NotFound());
+// One PATCH changes either the interval or the paused state (or both); fields left out stay as they are.
+app.MapPatch("/api/urls/{id}", async (long id, UrlChange body, Database db) =>
+{
+    if (body.IntervalSeconds is null && body.Paused is null)
+    {
+        return Results.BadRequest(new { error = "send intervalSeconds, paused, or both" });
+    }
+    if (body.IntervalSeconds is int seconds && !await db.UpdateIntervalAsync(id, seconds))
+    {
+        return Results.NotFound();
+    }
+    if (body.Paused is bool paused && !await db.SetPausedAsync(id, paused))
+    {
+        return Results.NotFound();
+    }
+    return Results.NoContent();
+});
 
 // Soft delete: the URL leaves the dashboard and stops being checked; its history stays (D-023).
 app.MapDelete("/api/urls/{id}", async (long id, Database db) =>
@@ -130,7 +147,7 @@ static Paging? ReadPaging(string sort, string? dir, int? page, int? pageSize, IE
 
 // The JSON bodies the UI sends. ASP.NET Core fills these from camelCase JSON automatically.
 record NewUrl(string Url, int IntervalSeconds);
-record IntervalChange(int IntervalSeconds);
+record UrlChange(int? IntervalSeconds, bool? Paused);
 record SettingsChange(int RetentionDays);
 record Paging(string Sort, bool Descending, int Page, int PageSize);
 

@@ -100,9 +100,13 @@ public class CheckScheduler : BackgroundService
         }
     }
 
-    // Due = never checked, or its interval has passed since the newest check.
+    // Due = not paused, and never checked, or its interval has passed since the newest check.
     private static bool IsDue(UrlStatus status)
     {
+        if (status.Paused)
+        {
+            return false;
+        }
         if (status.LastCheck is null)
         {
             return true;

@@ -5,13 +5,14 @@ using Microsoft.Data.Sqlite;
 public record SavedCheck(string CheckedAt, long? StatusCode, long ResponseTimeMs, bool Healthy, string? Error);
 
 // One row of the dashboard: a URL plus its newest check (null before the first check).
-public record UrlStatus(long Id, string Url, long IntervalSeconds, SavedCheck? LastCheck);
+// Paused means the URL stays on the dashboard with its history, but the scheduler skips it (EXTRA-01).
+public record UrlStatus(long Id, string Url, long IntervalSeconds, bool Paused, SavedCheck? LastCheck);
 
 // Numbers for one URL over the chosen window. Percent and average are null when there is nothing to count.
 public record WindowSummary(long CheckCount, double? UptimePercent, double? AvgResponseTimeMs, List<SavedCheck> Recent);
 
 // What /api/urls returns for each URL: the Phase 1 fields plus the window summary.
-public record DashboardRow(long Id, string Url, long IntervalSeconds, SavedCheck? LastCheck, WindowSummary Summary);
+public record DashboardRow(long Id, string Url, long IntervalSeconds, bool Paused, SavedCheck? LastCheck, WindowSummary Summary);
 
 // One row of the All-checks page: live results and archived ones together, so no history is hidden.
 public record HistoryRow(long UrlId, string Url, bool UrlRemoved, string CheckedAt, long? StatusCode,
@@ -29,7 +30,8 @@ public class Database
             url TEXT NOT NULL,
             interval_seconds INTEGER NOT NULL,
             created_at TEXT NOT NULL,
-            deleted_at TEXT NULL
+            deleted_at TEXT NULL,
+            paused_at TEXT NULL
         );
 
         CREATE TABLE IF NOT EXISTS check_results (
@@ -86,13 +88,17 @@ public class Database
         using var connection = new SqliteConnection(_connectionString);
         await connection.ExecuteAsync(SchemaScript);
 
-        // A database made before soft delete has no deleted_at column. CREATE TABLE IF NOT EXISTS
-        // does not change an existing table, so add the column once here (no migrations, D-005).
-        var hasDeletedAt = await connection.ExecuteScalarAsync<long>(
-            "SELECT COUNT(*) FROM pragma_table_info('urls') WHERE name = 'deleted_at'");
-        if (hasDeletedAt == 0)
+        // A database made before soft delete or pause lacks these columns. CREATE TABLE IF NOT EXISTS
+        // does not change an existing table, so add each missing column once here (no migrations, D-005).
+        foreach (var column in new[] { "deleted_at", "paused_at" })
         {
-            await connection.ExecuteAsync("ALTER TABLE urls ADD COLUMN deleted_at TEXT NULL");
+            var exists = await connection.ExecuteScalarAsync<long>(
+                "SELECT COUNT(*) FROM pragma_table_info('urls') WHERE name = @Column", new { Column = column });
+            if (exists == 0)
+            {
+                // The name comes from the fixed array above, never from a request, so building the SQL is safe.
+                await connection.ExecuteAsync($"ALTER TABLE urls ADD COLUMN {column} TEXT NULL");
+            }
         }
 
         var urlCount = await connection.ExecuteScalarAsync<long>("SELECT COUNT(*) FROM urls");
@@ -116,6 +122,7 @@ public class Database
             SELECT u.id AS Id,
                    u.url AS Url,
                    u.interval_seconds AS IntervalSeconds,
+                   u.paused_at AS PausedAt,
                    r.checked_at AS CheckedAt,
                    r.status_code AS StatusCode,
                    r.response_time_ms AS ResponseTimeMs,
@@ -138,6 +145,7 @@ public class Database
             row.Id,
             row.Url,
             row.IntervalSeconds,
+            row.PausedAt is not null,
             row.CheckedAt is null
                 ? null
                 : new SavedCheck(row.CheckedAt, row.StatusCode, row.ResponseTimeMs ?? 0, row.Healthy == 1, row.Error)))
@@ -154,7 +162,7 @@ public class Database
         foreach (var status in statuses)
         {
             var summary = await GetWindowSummaryAsync(status.Id, since);
-            rows.Add(new DashboardRow(status.Id, status.Url, status.IntervalSeconds, status.LastCheck, summary));
+            rows.Add(new DashboardRow(status.Id, status.Url, status.IntervalSeconds, status.Paused, status.LastCheck, summary));
         }
 
         return rows;
@@ -277,6 +285,17 @@ public class Database
         return changed > 0;
     }
 
+    // Pause keeps the row and its history; the scheduler skips it until it is resumed (EXTRA-01).
+    // Returns false when no live URL has this id.
+    public async Task<bool> SetPausedAsync(long id, bool paused)
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        var changed = await connection.ExecuteAsync(
+            "UPDATE urls SET paused_at = @PausedAt WHERE id = @Id AND deleted_at IS NULL",
+            new { Id = id, PausedAt = paused ? DateTime.UtcNow.ToString("o") : null });
+        return changed > 0;
+    }
+
     public async Task<int> GetRetentionDaysAsync()
     {
         using var connection = new SqliteConnection(_connectionString);
@@ -325,7 +344,8 @@ public class Database
 
     // Every result ever saved, live and archived, for every URL including removed ones. Sorted and paged
     // in SQL, because this table can hold many thousands of rows.
-    public async Task<Page<HistoryRow>> GetAllChecksAsync(string sortKey, bool descending, int page, int pageSize)
+    // urlId narrows it to one URL (the history modal); null means every URL.
+    public async Task<Page<HistoryRow>> GetAllChecksAsync(string sortKey, bool descending, int page, int pageSize, long? urlId = null)
     {
         var orderBy = HistorySortColumns[sortKey];
         var direction = descending ? "DESC" : "ASC";
@@ -343,13 +363,15 @@ public class Database
                    a.checked_at AS CheckedAt, a.status_code AS StatusCode, a.response_time_ms AS ResponseTimeMs,
                    a.healthy AS Healthy, a.error AS Error, a.archived AS Archived
             FROM a JOIN urls u ON u.id = a.url_id
+            WHERE @UrlId IS NULL OR a.url_id = @UrlId
             ORDER BY {orderBy} {direction}, a.checked_at DESC
             LIMIT @PageSize OFFSET @Offset
             """;
 
         using var connection = new SqliteConnection(_connectionString);
-        var total = await connection.ExecuteScalarAsync<long>(allChecks + "SELECT COUNT(*) FROM a");
-        var rows = await connection.QueryAsync<HistoryDbRow>(sql, new { PageSize = pageSize, Offset = (page - 1) * pageSize });
+        var total = await connection.ExecuteScalarAsync<long>(
+            allChecks + "SELECT COUNT(*) FROM a WHERE @UrlId IS NULL OR a.url_id = @UrlId", new { UrlId = urlId });
+        var rows = await connection.QueryAsync<HistoryDbRow>(sql, new { PageSize = pageSize, Offset = (page - 1) * pageSize, UrlId = urlId });
 
         return new Page<HistoryRow>(total, rows.Select(r => new HistoryRow(
             r.UrlId, r.Url, r.UrlRemoved == 1, r.CheckedAt, r.StatusCode, r.ResponseTimeMs, r.Healthy == 1, r.Error,
@@ -393,6 +415,7 @@ public class Database
         public long Id { get; set; }
         public string Url { get; set; } = "";
         public long IntervalSeconds { get; set; }
+        public string? PausedAt { get; set; }
         public string? CheckedAt { get; set; }
         public long? StatusCode { get; set; }
         public long? ResponseTimeMs { get; set; }
