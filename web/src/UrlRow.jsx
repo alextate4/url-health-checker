@@ -52,8 +52,8 @@ export default function UrlRow({ url, onChanged, onError }) {
   }
 
   function handleRemove() {
-    // Removing also deletes the URL's history, so ask first.
-    if (!confirm(`Stop monitoring ${url.url} and delete its history?`)) return
+    // Soft delete (D-023): the URL stops being checked, but its history stays on the All-checks page.
+    if (!confirm(`Stop monitoring ${url.url}? Its history stays on the All-checks page.`)) return
     removeUrl(url.id)
       .then(onChanged)
       .catch((err) => onError(`Could not remove URL: ${err.message}`))
@@ -65,7 +65,9 @@ export default function UrlRow({ url, onChanged, onError }) {
         <span className={`dot ${status.className}`}></span>
         {status.word}
       </td>
-      <td>{url.url}</td>
+      <td>
+        <div className="resizable-row">{url.url}</div>
+      </td>
       <td>
         <IntervalEditor url={url} onChanged={onChanged} onError={onError} />
       </td>

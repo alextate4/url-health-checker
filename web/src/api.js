@@ -22,3 +22,18 @@ export function changeInterval(id, intervalSeconds) {
 export function removeUrl(id) {
   return send('DELETE', `/api/urls/${id}`)
 }
+
+export async function getRetentionDays() {
+  const response = await fetch('/api/settings')
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  return (await response.json()).retentionDays
+}
+
+export function saveRetentionDays(retentionDays) {
+  return send('PUT', '/api/settings', { retentionDays })
+}
+
+// Builds "?sort=url&dir=asc&page=1&pageSize=10" from a plain object.
+export function query(params) {
+  return '?' + new URLSearchParams(params).toString()
+}
