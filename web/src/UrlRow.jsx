@@ -64,7 +64,7 @@ export default function UrlRow({ url, onChanged, onError }) {
 
   function handleRemove() {
     // Soft delete (D-023): the URL stops being checked, but its history stays on the All-checks page.
-    if (!confirm(`Stop monitoring ${url.url}? Its history stays on the All-checks page.`)) return
+    if (!confirm(`Stop monitoring ${url.url}? Its history stays in the Archive.`)) return
     removeUrl(url.id)
       .then(onChanged)
       .catch((err) => onError(`Could not remove URL: ${err.message}`))

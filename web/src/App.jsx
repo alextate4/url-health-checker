@@ -27,7 +27,7 @@ export default function App() {
             Dashboard
           </a>
           <a href="#/checks" className={view === 'checks' ? 'active' : ''}>
-            All checks (full history)
+            Archive
           </a>
         </nav>
       </header>
