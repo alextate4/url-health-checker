@@ -147,3 +147,17 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# .NET build output
+bin/
+obj/
+.vs/
+
+# SQLite database (created on first run)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Built frontend (Vite builds into here; rebuilt on a fresh clone)
+server/wwwroot/

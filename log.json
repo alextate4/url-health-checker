@@ -3,7 +3,7 @@
   "about": "Decision log for defending choices in the Rosnet panel. Each decision lists alternatives, tradeoffs, a plain (STE-100) explanation, and how AI was involved. Edge cases are logged here and fixed only at the end, by priority.",
   "timebox": {
     "capHours": 3,
-    "buildStartedAt": null,
+    "buildStartedAt": "2026-11-07T18:05:44Z",
     "buildEndedAt": null,
     "notes": "Clock starts with the first line of application code. Planning and setup before that are logged separately below."
   },
