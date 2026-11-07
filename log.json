@@ -823,6 +823,37 @@
         "rejected": null
       },
       "status": "accepted"
+    },
+    {
+      "id": "D-029",
+      "date": "2026-11-07",
+      "area": "frontend",
+      "title": "Sparkline: inline SVG over the strip's recent checks, inside the Recent checks cell",
+      "decision": "sparklinePoints() in logic.js maps the window's 30 newest checks (the same data as the strip) to polyline points, skipping no-response checks. The SVG sits above the strip in the same cell, so no new column is needed at 1280 px.",
+      "alternatives": [
+        {
+          "option": "Plot every check in the window",
+          "whyNot": "A 7d window is ~20k points per URL on every 5 s poll (the reason for D-018); 30 points show the trend."
+        },
+        {
+          "option": "A chart library",
+          "whyNot": "Banned by the stack rules and unnecessary for one polyline."
+        },
+        {
+          "option": "A separate Sparkline column",
+          "whyNot": "Would push the table past 1280 px again."
+        }
+      ],
+      "rationale": "Meets EXTRA-04 with no new data, no package, and a tested pure function.",
+      "tradeoffs": "The line covers the newest 30 checks in the window, not the whole window; the scale is per row, so heights are not comparable across rows.",
+      "plain": "A small line above the colored boxes shows if a web address is getting faster or slower.",
+      "ai": {
+        "suggestedBy": "Claude (last stretch item)",
+        "accepted": "Owner said proceed.",
+        "changed": null,
+        "rejected": null
+      },
+      "status": "accepted"
     }
   ],
   "edgeCases": [

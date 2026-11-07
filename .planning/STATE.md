@@ -4,10 +4,10 @@ current_phase: 1
 current_phase_name: Walking Skeleton
 status: core-complete
 stopped_at: "Core complete (Phases 1-2). Remaining: optional stretch (EXTRA-02, EXTRA-04, edge cases by priority)"
-last_updated: "2026-11-07T19:47:58.362Z"
+last_updated: "2026-11-07T19:48:55.794Z"
 last_activity: 2026-11-07
 last_activity_desc: README written; Phase 2 complete
-state_head: 93051a142a1ffba04e5a3a7a088b76c6b2901619
+state_head: 2c4753ea7750f018a0db5ab4b1e23f9a400c69d4
 progress:
   total_phases: 2
   completed_phases: 0
@@ -93,6 +93,7 @@ None yet.
 | 8 | Phase 2 task 5: README (DLVR-03) with screenshot (inline) | 2026-11-07 | 99a6f75 | — |
 | 9 | Priority-1 edge cases: server-side URL and interval rules with SSRF guard (EC-002, EC-003) | 2026-11-07 | ac4482e | — |
 | 10 | Check now button (EXTRA-02) | 2026-11-07 | 93051a1 | — |
+| 11 | Sparkline (EXTRA-04) | 2026-11-07 | 2c4753e | — |
 
 ## Deferred Items
 
