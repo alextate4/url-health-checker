@@ -299,7 +299,7 @@ the commit timestamps (`TZ=UTC git log --date=iso-strict-local`):
 | Build clock starts (first line of app code) | 18:05:44 | `0937bda` at 18:06:00 |
 | Core complete (every v1 requirement + README) | 19:34:01 | `99a6f75` |
 | First wrap-up (clock stopped at 1h 52m 34s) | 19:58:18 | `e5efa1d` |
-| App changes after review (auto-refresh D-031, then independent refreshes D-032) | 20:17:25, 20:23:48 | `7a883c1`, last app commit |
+| App changes after review (auto-refresh D-031, then independent refreshes D-032) | 20:17:25, 20:23:48 | `7a883c1`, `5d362bb` |
 
 Planning before the clock (requirements, roadmap, process setup) is not counted, per the timebox
 rule. A fresh-clone check at the first wrap-up passed (clone → `dotnet run` → UI served in 6 s, all
