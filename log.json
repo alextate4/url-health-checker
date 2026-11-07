@@ -579,6 +579,68 @@
         "rejected": null
       },
       "status": "accepted"
+    },
+    {
+      "id": "D-021",
+      "date": "2026-11-07",
+      "area": "api",
+      "title": "URL management: POST, PATCH and DELETE on /api/urls",
+      "decision": "POST /api/urls {url, intervalSeconds} -> 201 {id}; PATCH /api/urls/{id} {intervalSeconds} -> 204 or 404; DELETE /api/urls/{id} -> 204 or 404, deleting the URL and its history in one transaction. No server-side validation yet (EC-002, EC-003, EC-004 stay deferred); the form uses type=url and min=10 in the browser only. The UI reloads at once after a change by bumping a version counter that re-runs the polling effect.",
+      "alternatives": [
+        {
+          "option": "PUT /api/urls/{id} with the whole URL object",
+          "whyNot": "Only the interval can change, so PATCH with one field is the honest shape."
+        },
+        {
+          "option": "Keep history when a URL is removed (soft delete)",
+          "whyNot": "Adds an 'active' flag to every query; the brief asks to remove URLs. Pause/resume (EXTRA-01) is the place for keeping history."
+        },
+        {
+          "option": "Validate URL and interval on the server now",
+          "whyNot": "CLAUDE.md section 4: edge cases are logged first and fixed at the end in priority order."
+        }
+      ],
+      "rationale": "Smallest set of endpoints that meets URL-01..03, using the HTTP verbs a reviewer expects.",
+      "tradeoffs": "Bad input can be saved through the API (the browser form blocks the obvious cases). Remove is permanent and also deletes history, so the UI asks for confirmation.",
+      "plain": "Three new server calls let the page add a web address, change how often it is checked, or remove it. Removing it also removes its old results.",
+      "ai": {
+        "suggestedBy": "Claude",
+        "accepted": "Built inline in the session after the owner said yes to task 3.",
+        "changed": null,
+        "rejected": null
+      },
+      "status": "accepted"
+    },
+    {
+      "id": "D-022",
+      "date": "2026-11-07",
+      "area": "backend",
+      "title": "Concurrent checks: start without awaiting, SemaphoreSlim cap, in-flight set",
+      "decision": "Each tick, the scheduler starts every due check as its own task and does not wait for it. A SemaphoreSlim (Monitor:MaxConcurrentChecks = 4 in appsettings.json) limits how many run at once; extra checks wait for a free slot. A ConcurrentDictionary of URL ids in flight stops a slow URL from being started again on the next tick. Each task logs its own errors because nobody awaits it.",
+      "alternatives": [
+        {
+          "option": "Parallel.ForEachAsync over the due URLs, awaited per tick",
+          "whyNot": "Shorter, but a URL that takes the full 10 s timeout still holds the whole pass, so every other URL's next check waits up to 10 s. CHK-05 says one slow URL must not delay the others."
+        },
+        {
+          "option": "One timer per URL",
+          "whyNot": "Many timers to create, change and dispose when URLs are added, re-timed or removed; the single loop already handles all three by reading the DB each tick."
+        },
+        {
+          "option": "A Channel-based worker pool",
+          "whyNot": "More moving parts than a semaphore for the same result at this size."
+        }
+      ],
+      "rationale": "Meets CHK-05 strictly. Shown with a local socket that never answers: example.org was saved 9 s before the hanging URL timed out.",
+      "tradeoffs": "Fire-and-forget tasks are harder to follow than an awaited loop, and a check can finish after its URL is deleted (EC-023). The cap is global, not per host.",
+      "plain": "The checker now checks up to 4 web addresses at the same time. It does not wait for a slow one before it starts the others. It also never checks the same address twice at once.",
+      "ai": {
+        "suggestedBy": "Claude",
+        "accepted": "Owner approved task 3; Claude picked the non-awaited design over Parallel.ForEachAsync after reasoning that an awaited pass still blocks the next tick for up to 10 s.",
+        "changed": null,
+        "rejected": "Parallel.ForEachAsync (Claude's first idea)"
+      },
+      "status": "accepted"
     }
   ],
   "edgeCases": [
@@ -587,8 +649,9 @@
       "priority": 1,
       "title": "Overlapping checks for the same URL",
       "description": "A slow check (near the timeout) is still running when the URL is due again, so two checks run at once.",
-      "status": "deferred",
-      "plain": "A check can take a long time. The next check can start before the first one ends."
+      "status": "fixed",
+      "plain": "A check can take a long time. The next check can start before the first one ends.",
+      "fixedNote": "Phase 2 task 3: an in-flight set in CheckScheduler skips a URL whose check is still running (D-022)."
     },
     {
       "id": "EC-002",
@@ -643,8 +706,9 @@
       "priority": 3,
       "title": "Deleting a URL that has history",
       "description": "Decide whether results are removed with it or kept.",
-      "status": "deferred",
-      "plain": "If you remove an address, what happens to its old results?"
+      "status": "fixed",
+      "plain": "If you remove an address, what happens to its old results?",
+      "fixedNote": "Phase 2 task 3: DELETE /api/urls/{id} removes the URL and its check_results in one transaction (D-021)."
     },
     {
       "id": "EC-009",
@@ -749,6 +813,38 @@
       "description": "COUNT and AVG scan all rows of the URL in the window every 5 seconds. A 7d window is about 20,000 rows per 30s URL. A rollup table would fix this.",
       "status": "deferred",
       "plain": "The server counts thousands of rows again every 5 seconds. This is fast now, but it would slow down with a lot of history."
+    },
+    {
+      "id": "EC-022",
+      "priority": 2,
+      "title": "Some sites answer 403 to requests with no User-Agent",
+      "description": "HttpClient sends no User-Agent by default. https://www.wikipedia.org answered 403 during testing, so it shows unhealthy although it is up. Fix: set a User-Agent on the named 'checker' client.",
+      "status": "deferred",
+      "plain": "Some websites refuse visitors that do not say who they are. Our checker does not say, so a working site can look broken."
+    },
+    {
+      "id": "EC-023",
+      "priority": 3,
+      "title": "A check still running when its URL is deleted saves an orphan result",
+      "description": "Checks are not awaited by the loop (D-022). If the URL is deleted during its check, InsertCheckResultAsync still writes a row for the deleted url_id. SQLite foreign keys are not enforced by default, so nothing stops it. The row is never shown.",
+      "status": "deferred",
+      "plain": "If you delete a URL at the exact moment it is being checked, one hidden leftover row can be saved."
+    },
+    {
+      "id": "EC-024",
+      "priority": 3,
+      "title": "An add/re-time/remove error message disappears on the next successful poll",
+      "description": "Mutation errors share the page error line with polling. The next good poll (up to 5 s later) clears it.",
+      "status": "deferred",
+      "plain": "If adding a URL fails, the error message shows for only a few seconds."
+    },
+    {
+      "id": "EC-025",
+      "priority": 3,
+      "title": "The interval box in a row does not follow a change made in another tab",
+      "description": "IntervalEditor keeps its own state, set once from the first load.",
+      "status": "deferred",
+      "plain": "If you change an interval in a second browser tab, the first tab still shows the old number in the box."
     }
   ],
   "aiNotes": [
@@ -783,6 +879,10 @@
     {
       "date": "2026-11-07",
       "note": "Phase 2 task 2 (tests) was built inline by Claude in the main session instead of a planner + executor run, to save about 10 minutes. To show the tests are real, Claude broke the code on purpose twice (healthy rule <= 399 -> < 399; window filter returning everything) and saw exactly the guarding test fail each time, then reverted. All 12 passed on the first run, so no generated test needed a fix."
+    },
+    {
+      "date": "2026-11-07",
+      "note": "Phase 2 task 3 built inline. Mistake by Claude: the verify script ended with `lsof -ti tcp:5080 | xargs kill`. Port 5080 was already used by the owner's own running app, so the first curl checks hit the old build (405/404) and the cleanup killed the owner's process. Claude told the owner, and all later checks run on port 5081 and kill only the PID they started. Also found while testing: https://www.wikipedia.org answers 403 with no User-Agent (logged EC-022)."
     }
   ]
 }

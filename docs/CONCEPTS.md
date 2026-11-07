@@ -305,3 +305,62 @@ calls the same function. It does not know the answer is fake.
 
 **Why we use it:** The tests do not depend on real websites, so they give the same result every
 time. We can also make a timeout or a DNS failure happen on demand.
+
+---
+
+## HTTP methods and status codes: POST, PATCH, DELETE, 201, 204, 404
+
+**What it is:** The method says what a request wants to do. `GET` reads. `POST` creates something
+new. `PATCH` changes part of something. `DELETE` removes something. The server answers with a
+status code. `201 Created` means a new thing was made. `204 No Content` means it worked and there
+is nothing to send back. `404 Not Found` means no thing has that id.
+
+**JavaScript comparison:** In `fetch(url, { method: 'DELETE' })`, the `method` option chooses the
+method. `response.status` is the code. `response.ok` is true for any code from 200 to 299.
+
+**Why we use it:** Anyone who knows HTTP can read our API without a manual. `DELETE /api/urls/5`
+clearly removes URL 5.
+
+---
+
+## Database transaction
+
+**What it is:** A transaction groups several database changes. Either all of them are saved, or
+none of them are. We use one when we remove a URL. We delete its check results and the URL row
+together. If the second step fails, the first step is undone too.
+
+**JavaScript comparison:** It is like building a new array and replacing state in one
+`setState` call. React never shows a half-done update. A transaction gives the database the same
+"all or nothing" rule.
+
+**Why we use it:** A removed URL never leaves half of its data behind.
+
+---
+
+## SemaphoreSlim: a limit on how many things run at once
+
+**What it is:** A semaphore holds a fixed number of "slots". A task calls `WaitAsync()` to take a
+slot. If no slot is free, the task waits. When the task is done, it calls `Release()`. That gives
+the slot to the next waiting task. We use 4 slots, so at most 4 checks run at the same time.
+
+**JavaScript comparison:** It is like the `p-limit` package: `const limit = pLimit(4)` and then
+`limit(() => check(url))`. Only 4 promises run at once. The rest wait in a queue.
+
+**Why we use it:** We want checks to run in parallel, but not without a limit. 100 URLs must not
+open 100 connections at the same moment.
+
+---
+
+## Starting a task without awaiting it ("fire and forget")
+
+**What it is:** `_ = CheckOneAsync(...)` starts an async method and does not wait for it. The loop
+goes on to the next URL at once. The `_ =` tells the reader (and the compiler) that this is on
+purpose. Nobody waits for the result, so the method must catch and log its own errors. If it does
+not, an error is lost.
+
+**JavaScript comparison:** It is like calling `checkOne(url)` without `await` inside a `for`
+loop. Each call returns a promise that runs on its own. You need a `.catch()` inside, or a
+rejection goes unhandled.
+
+**Why we use it:** One slow URL can take 10 seconds to time out. If the loop waited for it, every
+other URL would wait too.
