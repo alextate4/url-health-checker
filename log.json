@@ -478,6 +478,72 @@
         "rejected": null
       },
       "status": "accepted"
+    },
+    {
+      "id": "D-018",
+      "date": "2026-11-07",
+      "area": "architecture",
+      "title": "History window API: ?window=1h|24h|7d with a summary and the 30 newest checks per URL",
+      "decision": "GET /api/urls?window=1h|24h|7d returns the Phase 1 fields plus summary {checkCount, uptimePercent, avgResponseTimeMs, recent}. recent is the 30 newest checks inside the window, oldest first. The server works out each summary with two small SQL queries per URL (one COUNT/AVG, one ORDER BY checked_at DESC LIMIT 30). GET /api/urls/{id}/checks?window= returns every check of one URL inside the window (HIST-03). The window is a fixed whitelist: no window means 1h, any other value returns 400. The cutoff is DateTime.UtcNow minus the window, passed to SQL as ISO 'o' UTC text. The dashboard polls every 5 seconds.",
+      "alternatives": [
+        {
+          "option": "Send every check to the browser and compute in JavaScript",
+          "whyNot": "A 7d window holds about 20,000 checks per 30s URL. The browser would download them all on every poll."
+        },
+        {
+          "option": "One GROUP BY for the stats plus a ROW_NUMBER() window-function query for the strip",
+          "whyNot": "Fewer queries, but it adds another SQL concept and a merge by url_id in C#. It still numbers every row in the window."
+        },
+        {
+          "option": "A separate stats endpoint",
+          "whyNot": "Two requests per poll and merge code in JavaScript."
+        },
+        {
+          "option": "A strip of time buckets that covers the whole window",
+          "whyNot": "ROADMAP Phase 2 criterion 2 says each check is colored. Buckets also need more SQL date math. Good for README Next steps."
+        },
+        {
+          "option": "A pre-computed rollup table",
+          "whyNot": "Right at scale, but too much for the 3-hour cap."
+        }
+      ],
+      "rationale": "One request per poll, with a size that does not depend on the window. Each summary query uses the existing (url_id, checked_at) index. The window filter sits in Database methods that take the cutoff as a parameter, so a test can call them directly.",
+      "tradeoffs": "1 + 2N queries per poll. That is fine for a handful of URLs in an in-process database. The aggregate still reads every row in the window every 5 seconds: a 7d window is about 20,000 rows per 30s URL, and a rollup table is the next step. The strip shows only the newest 30 checks. In a fresh demo with less than 1 hour of data, the three windows look the same, so the README must say this.",
+      "plain": "The browser asks for one window: 1 hour, 1 day, or 7 days. The server counts the checks inside that window and sends the totals. It also sends the 30 newest checks for the colored boxes. The browser never gets thousands of rows. The page asks again every 5 seconds.",
+      "ai": {
+        "suggestedBy": "Claude (orchestrator steer, then Claude as planner)",
+        "accepted": "The window query parameter, the summary and recent shape, the 400 for unknown windows, and 5 second polling.",
+        "changed": "The orchestrator steer suggested one GROUP BY for all URLs. The planner changed it to one small query per URL, because the strip needs a per-URL LIMIT query anyway.",
+        "rejected": "Sending all checks to the browser, a separate stats endpoint, time buckets, and a rollup table. The owner has not yet reviewed this decision in a session: read it before the panel."
+      },
+      "status": "accepted"
+    },
+    {
+      "id": "D-019",
+      "date": "2026-11-07",
+      "area": "data model",
+      "title": "Average response time counts only checks that got an HTTP response",
+      "decision": "avgResponseTimeMs averages response_time_ms only for checks where status_code is not NULL (a 2xx to 5xx answer). The SQL uses AVG over CASE WHEN status_code IS NOT NULL, and AVG skips NULL.",
+      "alternatives": [
+        {
+          "option": "Average every check",
+          "whyNot": "A DNS failure adds about 2 ms and a timeout adds 10,000 ms. Neither is a response time, so 'how fast it answers' gets mixed with 'how fast it fails'."
+        },
+        {
+          "option": "Average only healthy checks",
+          "whyNot": "The 404 seed answers, but it would show a dash instead of its real time."
+        }
+      ],
+      "rationale": "A response time only means something when the server answered. Uptime % already shows the failures.",
+      "tradeoffs": "A URL that often times out can still show a good average. Uptime % is the stat that shows those failures.",
+      "plain": "The average time counts only the checks where the website answered. A failed lookup or a timeout is not an answer, so it stays out of the average. The uptime number still shows those failures.",
+      "ai": {
+        "suggestedBy": "Claude (planner)",
+        "accepted": "Average only checks that got an HTTP response.",
+        "changed": null,
+        "rejected": "Averaging every check, and averaging only healthy checks. This was not in the orchestrator steer."
+      },
+      "status": "accepted"
     }
   ],
   "edgeCases": [
@@ -600,6 +666,54 @@
       "description": "A failed check stores the HttpRequestException message. On macOS it reads 'nodename nor servname provided, or not known'; on Windows and Linux it differs. The text is correct but not the same everywhere.",
       "status": "deferred",
       "plain": "The error words for a bad web address change from one computer type to another."
+    },
+    {
+      "id": "EC-016",
+      "priority": 3,
+      "title": "Unknown URL id on /api/urls/{id}/checks returns an empty list",
+      "description": "The history route answers 200 with [] when the id does not exist, not 404. A client cannot tell 'no such URL' from 'no checks in this window'.",
+      "status": "deferred",
+      "plain": "If you ask for a URL that does not exist, you get an empty list, not a 'not found' error."
+    },
+    {
+      "id": "EC-017",
+      "priority": 3,
+      "title": "/api/urls/{id}/checks has no paging",
+      "description": "A 7d call returns every check in the window (about 20,000 rows for a 30s URL). The UI does not poll this route, so it is acceptable for now.",
+      "status": "deferred",
+      "plain": "Asking for 7 days of one URL sends all of its checks at once. That can be a big reply."
+    },
+    {
+      "id": "EC-018",
+      "priority": 3,
+      "title": "Polling continues while the browser tab is hidden",
+      "description": "The dashboard polls every 5 seconds even when nobody can see it. It wastes requests but does no harm on localhost.",
+      "status": "deferred",
+      "plain": "The page keeps asking for new data even when you are on another tab."
+    },
+    {
+      "id": "EC-019",
+      "priority": 3,
+      "title": "A slow poll can overlap the next one",
+      "description": "If one request takes longer than 5 seconds, the next poll starts before it ends. The ignore flag only protects against a window change, so two replies for the same window could arrive out of order.",
+      "status": "deferred",
+      "plain": "If the server is slow, two requests can run at the same time. The older answer could show up last."
+    },
+    {
+      "id": "EC-020",
+      "priority": 2,
+      "title": "A fresh database makes the three windows look the same",
+      "description": "With less than 1 hour of data, 1h, 24h, and 7d count the same checks. The picker seems to do nothing until history builds up. The README must say this.",
+      "status": "deferred",
+      "plain": "When the app is new, all three windows show the same numbers, because there is not enough history yet."
+    },
+    {
+      "id": "EC-021",
+      "priority": 2,
+      "title": "The summary query reads every row in the window on each poll",
+      "description": "COUNT and AVG scan all rows of the URL in the window every 5 seconds. A 7d window is about 20,000 rows per 30s URL. A rollup table would fix this.",
+      "status": "deferred",
+      "plain": "The server counts thousands of rows again every 5 seconds. This is fast now, but it would slow down with a lot of history."
     }
   ],
   "aiNotes": [
@@ -626,6 +740,10 @@
     {
       "date": "2026-11-07",
       "note": "Phase 1 code review (AI reviewer) found 3 items. Checked each by hand: npm install -> npm ci and the generic Node .gitignore were real. The DB-path warning was overstated: `dotnet run --project server` already uses server/ as working directory; only running the .dll directly from another folder put the DB elsewhere. Fixed all three anyway (the DB path is now pinned to the content root in Program.cs). Claude's own .csproj edit dropped a space and broke the XML; the fresh-clone rebuild caught it before commit."
+    },
+    {
+      "date": "2026-11-07",
+      "note": "Claude generated the Phase 2 window code from the plan (D-018, D-019). It built and passed the probe checks on the first run, so there is no bad suggestion to report. The plan warned about three pitfalls before the code was written: the DateTime-versus-text cutoff, the SQLite Int64 mapping (flat StatsRow and CheckRow classes), and a state name that hides the browser's window. I followed those warnings and did not test the unsafe versions. Read Database.GetWindowSummaryAsync first: it holds the aggregate, the 30-check strip query, and the cutoff handling."
     }
   ]
 }
