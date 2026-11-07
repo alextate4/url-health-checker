@@ -773,6 +773,33 @@
         "rejected": null
       },
       "status": "accepted"
+    },
+    {
+      "id": "D-027",
+      "date": "2026-11-07",
+      "area": "testing",
+      "title": "More tests at the owner's request: input rules, soft delete, pause, duplicates, paging, and frontend logic with node:test",
+      "decision": "Backend: 24 new xUnit cases (InputRulesTests; DatabaseTests for soft delete keeping history, pause flag, duplicate rule, All-checks paging) -> 37 total. Frontend: UI decision logic (nextSort, sortArrow, pageCount, rowStatus, formatPercent/formatMs, checkTooltip) moved from components into web/src/logic.js and tested with Node's built-in test runner (web/src/logic.test.js, 7 tests, `npm --prefix web test`). Component rendering is not tested.",
+      "alternatives": [
+        {
+          "option": "Vitest + React Testing Library + jsdom",
+          "whyNot": "Three or more new packages, and CLAUDE.md requires asking first; the 10-minute budget did not allow that conversation. node:test covers the logic with zero packages."
+        },
+        {
+          "option": "Keep core-only tests (D-009)",
+          "whyNot": "Owner asked to add any relevant tests that were missed; the SSRF guard and soft delete are behavior the panel will ask about."
+        }
+      ],
+      "rationale": "Covers the behavior added after the first test pass, including the security rule, without new dependencies.",
+      "tradeoffs": "Relaxes D-009 (no edge-case tests): InputRules tests cover fixed edge cases. No component/DOM tests; layout was checked by screenshots instead.",
+      "plain": "We added tests for the new rules and for the screen's logic. The screen tests use a tool that comes with Node, so we did not add any packages.",
+      "ai": {
+        "suggestedBy": "Owner asked for frontend unit tests and any missed tests; Claude chose node:test to avoid unapproved packages",
+        "accepted": "Built within the owner's 10-minute window.",
+        "changed": null,
+        "rejected": "Vitest/RTL (not asked for packages)"
+      },
+      "status": "accepted"
     }
   ],
   "edgeCases": [
@@ -808,8 +835,9 @@
       "priority": 2,
       "title": "Duplicate URLs",
       "description": "The same URL added twice, including trailing-slash or case differences.",
-      "status": "deferred",
-      "plain": "The same address can be added two times."
+      "status": "fixed",
+      "plain": "The same address can be added two times.",
+      "fixedNote": "POST /api/urls returns 409 when a live URL matches ignoring case and a trailing slash (Database.LiveUrlExistsAsync). Removed URLs do not count."
     },
     {
       "id": "EC-005",
@@ -955,8 +983,9 @@
       "priority": 2,
       "title": "Some sites answer 403 to requests with no User-Agent",
       "description": "HttpClient sends no User-Agent by default. https://www.wikipedia.org answered 403 during testing, so it shows unhealthy although it is up. Fix: set a User-Agent on the named 'checker' client.",
-      "status": "deferred",
-      "plain": "Some websites refuse visitors that do not say who they are. Our checker does not say, so a working site can look broken."
+      "status": "fixed",
+      "plain": "Some websites refuse visitors that do not say who they are. Our checker does not say, so a working site can look broken.",
+      "fixedNote": "The 'checker' HttpClient sends User-Agent: RosnetUrlHealthMonitor/1.0."
     },
     {
       "id": "EC-023",
@@ -1080,6 +1109,10 @@
     {
       "date": "2026-11-07",
       "note": "The owner reported the dashboard table overflowing the screen. Claude had built the last UI rounds without looking at them. This time it ran the app on a DB copy and took headless Chrome screenshots at 1280/1440/1920 px, found the cause (a 240px one-line strip plus the full DNS error text), fixed it, and re-checked each width. A first fix still overflowed at 1280 px and needed a second pass. Lesson: screenshot UI changes before calling them done."
+    },
+    {
+      "date": "2026-11-07",
+      "note": "Two slips in the test round: the first npm test script (`node --test src/`) ran the folder as a file and failed; fixed with a glob. Then Claude's 'break it on purpose' check on logic.js used git checkout to restore, but the file was not committed yet, so the broken version stayed on disk; Claude noticed in the status output and restored it by hand before committing. All 7 frontend and 37 backend tests pass after."
     }
   ]
 }

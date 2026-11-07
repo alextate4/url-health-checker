@@ -6,7 +6,7 @@ which URLs are healthy right now and how each one has behaved over a chosen time
 
 ![Dashboard](docs/dashboard.png)
 
-- **Decision log:** [`log.json`](log.json) holds every decision (D-001…D-026) with the
+- **Decision log:** [`log.json`](log.json) holds every decision (D-001…D-027) with the
   alternatives and tradeoffs, every edge case (EC-001…EC-031), and notes on how AI was used.
 - **Plain-English backend notes:** [`docs/CONCEPTS.md`](docs/CONCEPTS.md) explains each backend
   idea used here, with a JavaScript comparison.
@@ -33,7 +33,7 @@ creates `server/healthmonitor.db` and seeds four URLs, so you see every state at
 | `https://github.com/this-page-should-not-exist-rosnet` | unhealthy with a status code (404) |
 | `https://unreachable.invalid` | unhealthy with no response and an error reason (DNS; `.invalid` can never resolve) |
 
-**Tests:** `dotnet test` (13 tests, about 1 second).
+**Tests:** `dotnet test` (37 backend tests) and `npm --prefix web test` (7 frontend tests). Both run in about a second.
 
 **Frontend work with hot reload:** run `dotnet run --project server` in one terminal and
 `npm --prefix web run dev` in another, then open the Vite address. `/api` is proxied to :5080.
@@ -151,10 +151,20 @@ own temporary SQLite file.
 | `History_window_returns_only_checks_inside_it` | The window filter, oldest first |
 | `Window_summary_counts_uptime_and_average` | Uptime % and the average (which skips no-response checks, D-019) |
 | `Retention_archives_old_results_without_losing_them` | Retention moves old rows out of the live table, and they are still listed |
+| `Soft_delete_hides_the_url_but_keeps_its_history` | Remove hides the URL; its checks stay and are marked removed |
+| `Pause_and_resume_flip_the_paused_flag` | Pause/resume sets the flag the scheduler reads |
+| `Duplicate_check_ignores_case_and_trailing_slash_but_not_removed_urls` | The duplicate rule (409) |
+| `All_checks_paging_returns_one_page_and_the_total` | Paging slice and total |
+| `InputRulesTests` (24 cases) | Public URLs accepted; malformed URLs and every SSRF target refused; 172.32.x (just outside a private range) allowed; interval bounds 10 s–1 day |
+
+**Frontend (`web/src/logic.test.js`, Node's built-in test runner, no packages):** the UI's
+decisions live in `web/src/logic.js` and are tested directly: sort toggling and arrows, page count
+(never 0), row status (paused > pending > last result), a real 0% vs a missing value, and the
+tooltip for a check with no response.
 
 **Each test can fail for a real reason.** I broke the code on purpose and watched the guarding test
-fail: changing `<= 399` to `< 399` fails the 399 case, and disabling the window filter fails the
-history test.
+fail: changing `<= 399` to `< 399` fails the 399 case, disabling the window filter fails the
+history test, and treating 0% as missing fails the frontend formatting test.
 
 **Checked by running the app, not by automated tests:** the HTTP endpoints, the scheduler loop
 (per-URL intervals, pause/resume, and concurrency, using a local socket that never answers), the
@@ -163,15 +173,14 @@ fresh-clone build, and the UI layout (headless Chrome screenshots at 1280 / 1440
 ### What I didn't handle or test, and why
 
 Edge cases were logged as they came up and not built during the main pass, so the core could
-finish inside the cap. Seven are fixed: EC-001 (overlapping checks), EC-002 and EC-003 (server-side
-interval and URL rules, including blocking internal addresses), EC-008 and EC-023 (deleting a URL
-with history), EC-009 (re-timing applies on the next tick), and EC-011 (bodies are never
-downloaded). The rest are deferred. The full list with descriptions is in
+finish inside the cap. Nine are fixed: EC-001 (overlapping checks), EC-002 and EC-003 (server-side
+interval and URL rules, including blocking internal addresses), EC-004 (duplicates → 409), EC-008
+and EC-023 (deleting a URL with history), EC-009 (re-timing applies on the next tick), EC-011
+(bodies are never downloaded), and EC-022 (a User-Agent is sent). The rest are deferred. The full list with descriptions is in
 `log.json` → `edgeCases`.
 
 | ID | Priority | Gap |
 |---|---|---|
-| EC-004 | 2 | Duplicate URLs are allowed |
 | EC-005 | 2 | Stored in UTC; shown in the browser's local time with no zone label |
 | EC-006 | 2 | Expired or self-signed certificates are unhealthy, but the reason is the raw exception text, not a clear "certificate" message |
 | EC-007 | 2 | Redirect loops rely on HttpClient's default redirect limit |
@@ -179,14 +188,13 @@ downloaded). The rest are deferred. The full list with descriptions is in
 | EC-014 | 2 | `dotnet run` does not rebuild a stale `server/wwwroot` |
 | EC-020 | 2 | On a fresh database, 1h / 24h / 7d look the same until history is older than an hour |
 | EC-021 | 2 | The window summary re-reads every row in the window on each 5 s poll |
-| EC-022 | 2 | No `User-Agent` header, so some sites (Wikipedia) answer 403 and look down |
 | EC-026 | 2 | Nothing is hard-deleted, so the database grows forever |
 | EC-031 | 2 | The internal-address block checks the host as written; a public name that *resolves* to a private IP gets through |
 | EC-010, 013, 015–019, 024, 025, 027–030 | 3 | Smaller gaps: possible SQLite write contention under heavy load, no undo for remove, OFFSET paging can shift rows, resized widths are not saved, retention days not validated on the server, polling continues in hidden tabs, and others |
 
 Not tested on purpose: the HTTP layer end to end (it would need `WebApplicationFactory` and another
-package), the React components (it would need a test runner and DOM library), and every edge case
-above.
+package), React component rendering (it would need Vitest + Testing Library + jsdom, which were not
+added without approval), the scheduler loop's timing, and the deferred edge cases above.
 
 ---
 
@@ -200,8 +208,8 @@ above.
   multi-tenancy, containers, a design system, TypeScript, Postgres.
 
 **Next steps, in order**
-1. Finish input rules: duplicates, retention days, and resolve-then-check for internal addresses (EC-004, EC-030, EC-031).
-2. Send a `User-Agent` header and report TLS errors clearly (EC-022, EC-006).
+1. Finish input rules: retention days, and resolve-then-check for internal addresses (EC-030, EC-031).
+2. Report TLS certificate errors clearly (EC-006).
 3. "Check now" button (EXTRA-02) and a response-time sparkline (EXTRA-04).
 4. A rollup table (per URL per hour) so 7-day stats don't re-scan raw rows (EC-021), plus a purge
    or export job for the archive (EC-026).
@@ -215,6 +223,7 @@ above.
 
 This was built with Claude Code (Claude Opus) as a pair, using a lightweight plan → build → verify
 loop. AI use is meant to be visible:
+- Tests: 37 xUnit + 7 frontend (`node:test`).
 - Every commit carries a `Co-Authored-By: Claude` trailer.
 - Every decision in `log.json` has an `ai` block that says who suggested it and what I accepted,
   changed, or rejected.
@@ -258,7 +267,7 @@ server/            ASP.NET Core app (API, scheduler, retention, SQLite)
   CheckScheduler.cs  5 s loop, concurrency cap, pause
   RetentionSweeper.cs moves old results to the archive
 web/src/           React 18 UI (plain JS + CSS)
-tests/             xUnit tests (13)
+tests/             xUnit tests (37); frontend tests are in web/src/logic.test.js
 docs/              CONCEPTS.md, KICKOFF_PROMPT.md, screenshot
 log.json           decisions, edge cases, AI notes, timebox
 .planning/         plan/state files from the AI workflow
