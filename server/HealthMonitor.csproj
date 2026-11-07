@@ -11,4 +11,10 @@
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.14" />
   </ItemGroup>
 
+  <!-- Builds the React UI on a fresh clone, so one `dotnet run` works without committing built files. -->
+  <Target Name="BuildWebUi" BeforeTargets="Build">
+    <Exec Command="npm install" WorkingDirectory="$(MSBuildProjectDirectory)/../web" Condition="!Exists('$(MSBuildProjectDirectory)/../web/node_modules')" />
+    <Exec Command="npm run build" WorkingDirectory="$(MSBuildProjectDirectory)/../web" Condition="!Exists('$(MSBuildProjectDirectory)/wwwroot/index.html')" />
+  </Target>
+
 </Project>
