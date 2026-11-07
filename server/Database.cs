@@ -8,7 +8,7 @@ public record SavedCheck(string CheckedAt, long? StatusCode, long ResponseTimeMs
 public record UrlStatus(long Id, string Url, long IntervalSeconds, SavedCheck? LastCheck);
 
 // Numbers for one URL over the chosen window. Percent and average are null when there is nothing to count.
-public record WindowSummary(long CheckCount, double? UptimePercent, double? AvgResponseTimeMs);
+public record WindowSummary(long CheckCount, double? UptimePercent, double? AvgResponseTimeMs, List<SavedCheck> Recent);
 
 // What /api/urls returns for each URL: the Phase 1 fields plus the window summary.
 public record DashboardRow(long Id, string Url, long IntervalSeconds, SavedCheck? LastCheck, WindowSummary Summary);
@@ -124,6 +124,9 @@ public class Database
         return rows;
     }
 
+    // About 15 minutes of a 30s URL: it fits in one table cell, and the payload does not grow with the window.
+    private const int RecentCount = 30;
+
     public async Task<WindowSummary> GetWindowSummaryAsync(long urlId, DateTime since)
     {
         // healthy is 1 or 0, so its average is the share of healthy checks.
@@ -139,8 +142,44 @@ public class Database
         using var connection = new SqliteConnection(_connectionString);
         var stats = await connection.QuerySingleAsync<StatsRow>(sql, new { UrlId = urlId, Since = SinceText(since) });
 
-        return new WindowSummary(stats.CheckCount, stats.UptimePercent, stats.AvgResponseTimeMs);
+        // Newest 30 only: reading the whole window (up to ~20k rows for 7d) on every 5s poll would be wasteful.
+        const string recentSql = """
+            SELECT checked_at AS CheckedAt, status_code AS StatusCode, response_time_ms AS ResponseTimeMs,
+                   healthy AS Healthy, error AS Error
+            FROM check_results
+            WHERE url_id = @UrlId AND checked_at >= @Since
+            ORDER BY checked_at DESC
+            LIMIT @Count
+            """;
+
+        var recentRows = await connection.QueryAsync<CheckRow>(recentSql,
+            new { UrlId = urlId, Since = SinceText(since), Count = RecentCount });
+
+        // Newest came first for LIMIT; reverse so the strip reads oldest to newest, left to right.
+        var recent = recentRows.Select(ToSavedCheck).Reverse().ToList();
+
+        return new WindowSummary(stats.CheckCount, stats.UptimePercent, stats.AvgResponseTimeMs, recent);
     }
+
+    // Every check of one URL inside the window, oldest first (HIST-03). The window filter lives only here.
+    public async Task<List<SavedCheck>> GetChecksSinceAsync(long urlId, DateTime since)
+    {
+        const string sql = """
+            SELECT checked_at AS CheckedAt, status_code AS StatusCode, response_time_ms AS ResponseTimeMs,
+                   healthy AS Healthy, error AS Error
+            FROM check_results
+            WHERE url_id = @UrlId AND checked_at >= @Since
+            ORDER BY checked_at
+            """;
+
+        using var connection = new SqliteConnection(_connectionString);
+        var rows = await connection.QueryAsync<CheckRow>(sql, new { UrlId = urlId, Since = SinceText(since) });
+
+        return rows.Select(ToSavedCheck).ToList();
+    }
+
+    private static SavedCheck ToSavedCheck(CheckRow row) =>
+        new(row.CheckedAt, row.StatusCode, row.ResponseTimeMs, row.Healthy == 1, row.Error);
 
     // Stored times are "o" text ending in Z. A DateTime parameter would be written in another format
     // (space, no Z), and text comparison would then let old rows into the window (D1-08).
@@ -164,6 +203,15 @@ public class Database
             Healthy = result.Healthy ? 1 : 0,
             result.Error,
         });
+    }
+
+    private class CheckRow
+    {
+        public string CheckedAt { get; set; } = "";
+        public long? StatusCode { get; set; }
+        public long ResponseTimeMs { get; set; }
+        public long Healthy { get; set; }
+        public string? Error { get; set; }
     }
 
     private class StatsRow

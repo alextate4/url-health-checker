@@ -43,4 +43,15 @@ app.MapGet("/api/urls", async (string? window, Database db) =>
     return Results.Ok(await db.GetDashboardAsync(DateTime.UtcNow - span));
 });
 
+// Full history of one URL inside the window (HIST-03). Not polled by the UI, so it is not paged.
+app.MapGet("/api/urls/{id}/checks", async (long id, string? window, Database db) =>
+{
+    if (!historyWindows.TryGetValue(window ?? "1h", out var span))
+    {
+        return Results.BadRequest(new { error = "window must be 1h, 24h, or 7d" });
+    }
+
+    return Results.Ok(await db.GetChecksSinceAsync(id, DateTime.UtcNow - span));
+});
+
 app.Run();
