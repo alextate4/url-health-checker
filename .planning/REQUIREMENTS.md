@@ -14,26 +14,26 @@ core categories first; **EXTRA** and **EDGE** are built last and cut from the bo
 - [ ] **URL-01**: User can add a URL with a check interval from the UI
 - [ ] **URL-02**: User can remove a URL from the UI
 - [ ] **URL-03**: User can change a URL's check interval; the new interval applies on the next scheduler tick without a restart
-- [ ] **URL-04**: On first run the app seeds a few URLs, including one that is expected to fail, so the demo shows both states
+- [x] **URL-04**: On first run the app seeds a few URLs, including one that is expected to fail, so the demo shows both states
 
 ### Checks
 
-- [ ] **CHK-01**: Backend checks each URL when its interval has elapsed since its last check
-- [ ] **CHK-02**: Each check records the HTTP status code and the response time in milliseconds
-- [ ] **CHK-03**: A check is healthy when it gets a 200–399 status within the timeout
-- [ ] **CHK-04**: A check with a 4xx/5xx status, or with no response (timeout, DNS failure, connection refused), is recorded as unhealthy; when there is no response, the error reason is saved
+- [x] **CHK-01**: Backend checks each URL when its interval has elapsed since its last check
+- [x] **CHK-02**: Each check records the HTTP status code and the response time in milliseconds
+- [x] **CHK-03**: A check is healthy when it gets a 200–399 status within the timeout
+- [x] **CHK-04**: A check with a 4xx/5xx status, or with no response (timeout, DNS failure, connection refused), is recorded as unhealthy; when there is no response, the error reason is saved
 - [ ] **CHK-05**: Checks for different URLs run concurrently with a concurrency cap, so one slow URL does not delay the others
 
 ### History
 
-- [ ] **HIST-01**: Every check result is saved in SQLite with URL id, UTC timestamp, status code (nullable), response time, healthy flag, and error message (nullable)
-- [ ] **HIST-02**: URLs, settings, and history survive an app restart
+- [x] **HIST-01**: Every check result is saved in SQLite with URL id, UTC timestamp, status code (nullable), response time, healthy flag, and error message (nullable)
+- [x] **HIST-02**: URLs, settings, and history survive an app restart
 - [ ] **HIST-03**: The API returns check results for a URL within a requested time window
 
 ### Dashboard
 
-- [ ] **DASH-01**: Dashboard lists every URL with a clear healthy/unhealthy indicator based on its latest check
-- [ ] **DASH-02**: Each row shows the last status code and last response time
+- [x] **DASH-01**: Dashboard lists every URL with a clear healthy/unhealthy indicator based on its latest check
+- [x] **DASH-02**: Each row shows the last status code and last response time
 - [ ] **DASH-03**: Each row shows uptime % and average response time over the selected window
 - [ ] **DASH-04**: Each row shows a strip of recent checks colored by result
 - [ ] **DASH-05**: User can choose the history window (1h / 24h / 7d); stats and strip update to match
@@ -46,7 +46,7 @@ core categories first; **EXTRA** and **EDGE** are built last and cut from the bo
 
 ### Delivery
 
-- [ ] **DLVR-01**: `dotnet run` from a fresh clone serves both the API and the built UI
+- [x] **DLVR-01**: `dotnet run` from a fresh clone serves both the API and the built UI
 - [ ] **DLVR-02**: Core tests pass: check classification (healthy, unhealthy status, unreachable), result persistence, and history read-back for a window
 - [ ] **DLVR-03**: README covers what was built, how to run it, what was cut, next steps, testing approach (including what was not tested and why), and how AI was used
 
@@ -102,24 +102,24 @@ Which phases cover which requirements. Updated during roadmap creation.
 | URL-01 | Phase 2 | Pending |
 | URL-02 | Phase 2 | Pending |
 | URL-03 | Phase 2 | Pending |
-| URL-04 | Phase 1 | Pending |
-| CHK-01 | Phase 1 | Pending |
-| CHK-02 | Phase 1 | Pending |
-| CHK-03 | Phase 1 | Pending |
-| CHK-04 | Phase 1 | Pending |
+| URL-04 | Phase 1 | Complete |
+| CHK-01 | Phase 1 | Complete |
+| CHK-02 | Phase 1 | Complete |
+| CHK-03 | Phase 1 | Complete |
+| CHK-04 | Phase 1 | Complete |
 | CHK-05 | Phase 2 | Pending |
-| HIST-01 | Phase 1 | Pending |
-| HIST-02 | Phase 1 | Pending |
+| HIST-01 | Phase 1 | Complete |
+| HIST-02 | Phase 1 | Complete |
 | HIST-03 | Phase 2 | Pending |
-| DASH-01 | Phase 1 | Pending |
-| DASH-02 | Phase 1 | Pending |
+| DASH-01 | Phase 1 | Complete |
+| DASH-02 | Phase 1 | Complete |
 | DASH-03 | Phase 2 | Pending |
 | DASH-04 | Phase 2 | Pending |
 | DASH-05 | Phase 2 | Pending |
 | DASH-06 | Phase 2 | Pending |
 | CONF-01 | Phase 2 | Pending |
 | CONF-02 | Phase 2 | Pending |
-| DLVR-01 | Phase 1 | Pending |
+| DLVR-01 | Phase 1 | Complete |
 | DLVR-02 | Phase 2 | Pending |
 | DLVR-03 | Phase 2 | Pending |
 | EXTRA-01 | Stretch (quick) | Pending |
