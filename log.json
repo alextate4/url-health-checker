@@ -352,7 +352,7 @@
       "date": "2026-11-07",
       "area": "architecture",
       "title": "Phase 1 defaults: repo layout, data model, API, seeds, check behavior, dashboard",
-      "decision": "server/ + web/ + tests/ with one solution file. Vite builds into server/wwwroot (gitignored); an MSBuild target runs npm install/build when missing so a fresh-clone dotnet run works. Tables: urls(id, url, interval_seconds, created_at) and check_results(id, url_id, checked_at, status_code?, response_time_ms, healthy, error?), ISO UTC text times, last-checked derived from newest result. GET /api/urls returns each URL with its lastCheck or null. Seeds: example.com, github.com, a GitHub 404 page, unreachable.invalid. 5s tick, 10s timeout, GET with ResponseHeadersRead, follow redirects, sequential checks in Phase 1. Plain table with dot + word status.",
+      "decision": "server/ + web/ + tests/ with one solution file. Vite builds into server/wwwroot (gitignored); an MSBuild target runs npm install/build when missing so a fresh-clone dotnet run works. Tables: urls(id, url, interval_seconds, created_at) and check_results(id, url_id, checked_at, status_code?, response_time_ms, healthy, error?), ISO UTC text times, last-checked derived from newest result. GET /api/urls returns each URL with its lastCheck or null. Seeds: example.com, github.com, a GitHub 404 page, unreachable.invalid. 5s tick, 10s timeout, GET with ResponseHeadersRead, follow redirects, sequential checks in Phase 1. Plain table with dot + word status. Tick (5s) and timeout (10s) are defaults in appsettings.json: operator config, not UI settings.",
       "alternatives": [
         {
           "option": "Commit the built UI into wwwroot",
@@ -373,6 +373,10 @@
         {
           "option": "httpstat.us or httpbin as the failing seed",
           "whyNot": "Third-party test services are often down; .invalid can never resolve."
+        },
+        {
+          "option": "Make tick and timeout editable in the UI",
+          "whyNot": "No requirement asks for it; adds a form, a settings column, and validation inside the 3-hour cap. Per-URL timeout is a README next step."
         }
       ],
       "rationale": "Smallest version that meets the Phase 1 success criteria and keeps every piece easy to explain.",
@@ -381,7 +385,7 @@
       "ai": {
         "suggestedBy": "Claude (all defaults)",
         "accepted": "all — owner skipped the discussion step and said build it",
-        "changed": null,
+        "changed": "Owner asked whether tick and timeout were UI-configurable; agreed to move them from hard-coded values to appsettings.json.",
         "rejected": null
       },
       "status": "accepted"

@@ -77,11 +77,12 @@ serves API + `wwwroot`, Vite proxies `/api` in dev, React 18 pinned, plain JS/CS
   - `https://unreachable.invalid` — 30s (DNS failure → unhealthy with an error reason; `.invalid` is
     reserved by RFC 2606, so it can never resolve)
   Rejected: httpstat.us / httpbin as failing seeds — third-party test services that are often down.
-- **P1-14:** Scheduler ticks every **5 seconds**. A URL is due when it has no results yet, or when
+- **P1-14:** Scheduler ticks every **5 seconds** (default; read from `appsettings.json`, not a UI setting). A URL is due when it has no results yet, or when
   its newest `checked_at` + `interval_seconds` ≤ now.
 - **P1-15:** Phase 1 checks due URLs **one after another** within a tick. Concurrent checks with a
   cap are CHK-05 in Phase 3.
-- **P1-16:** Request timeout **10 seconds**, set on a named `HttpClient` from `IHttpClientFactory`.
+- **P1-16:** Request timeout **10 seconds** (default; read from `appsettings.json`, not a UI setting), set on a named `HttpClient` from `IHttpClientFactory`.
+- **P1-16b:** Tick and timeout are operator config, not user settings: they live in `appsettings.json`, not in the UI or the DB. The only UI-configurable values in v1 are the per-URL interval, the history window, and retention. Error text for timeouts uses the configured value.
 - **P1-17:** Use `GET` with `HttpCompletionOption.ResponseHeadersRead` (stop after headers; body is
   not downloaded). Rejected: `HEAD` — some servers answer 405 to HEAD, which would show a false
   unhealthy.
@@ -175,6 +176,7 @@ serves API + `wwwroot`, Vite proxies `/api` in dev, React 18 pinned, plain JS/CS
 <deferred>
 ## Deferred Ideas
 
+- Per-URL timeout set from the UI — common in real monitors, but not a requirement; README next step.
 - Display names for URLs — not needed; the URL itself is the label. Possible v2 polish.
 - Everything already in `log.json` → `edgeCases` stays deferred (notably EC-001 overlapping checks,
   EC-007 redirects, EC-010 write contention, EC-011 large bodies — partly covered by
