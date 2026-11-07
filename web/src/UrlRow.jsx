@@ -2,16 +2,7 @@ import { useState } from 'react'
 import { changeInterval, removeUrl, setPaused } from './api.js'
 import { TrashIcon, PlayIcon, PauseIcon, HistoryIcon } from './icons.jsx'
 import HistoryModal from './HistoryModal.jsx'
-
-// Plain text for the browser's own tooltip; the word keeps it readable without color.
-function tooltip(c) {
-  return [
-    c.healthy ? 'Healthy' : 'Unhealthy',
-    c.statusCode ?? 'no response',
-    `${c.responseTimeMs} ms`,
-    new Date(c.checkedAt).toLocaleString(),
-  ].join(' · ')
-}
+import { rowStatus, formatPercent, formatMs, checkTooltip } from './logic.js'
 
 // Edits the interval in place. The scheduler picks up the new value on its next tick (URL-03).
 function IntervalEditor({ url, onChanged, onError }) {
@@ -47,14 +38,7 @@ export default function UrlRow({ url, onChanged, onError }) {
   const [showHistory, setShowHistory] = useState(false)
 
   // The word next to the dot keeps the status readable without color.
-  let status = { word: 'Pending', className: 'pending' }
-  if (check) {
-    status = check.healthy
-      ? { word: 'Healthy', className: 'healthy' }
-      : { word: 'Unhealthy', className: 'unhealthy' }
-  }
-  // Paused wins: the last result is old, so showing it as the current state would mislead.
-  if (url.paused) status = { word: 'Paused', className: 'pending' }
+  const status = rowStatus(url)
 
   function handlePlayPause() {
     setPaused(url.id, !url.paused)
@@ -88,9 +72,9 @@ export default function UrlRow({ url, onChanged, onError }) {
       <td className="nowrap">{check ? new Date(check.checkedAt).toLocaleTimeString() : '—'}</td>
       {/* "=== null", not "||": a real 0% must show as 0%. */}
       <td title={`${summary.checkCount} checks`}>
-        {summary.uptimePercent === null ? '—' : `${summary.uptimePercent}%`}
+        {formatPercent(summary.uptimePercent)}
       </td>
-      <td className="nowrap">{summary.avgResponseTimeMs === null ? '—' : `${summary.avgResponseTimeMs} ms`}</td>
+      <td className="nowrap">{formatMs(summary.avgResponseTimeMs)}</td>
       <td>
         <div className="recent">
           {summary.recent.length === 0 ? (
@@ -98,7 +82,7 @@ export default function UrlRow({ url, onChanged, onError }) {
           ) : (
             <div className="strip">
               {summary.recent.map((c) => (
-                <span key={c.checkedAt} className={`box ${c.healthy ? 'healthy' : 'unhealthy'}`} title={tooltip(c)}></span>
+                <span key={c.checkedAt} className={`box ${c.healthy ? 'healthy' : 'unhealthy'}`} title={checkTooltip(c)}></span>
               ))}
             </div>
           )}

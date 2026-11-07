@@ -1,15 +1,16 @@
+import { nextSort, sortArrow, pageCount } from './logic.js'
+
 // Shared by the dashboard and the All-checks table. The server does the sorting and paging;
 // these components only change the request.
 
 // A header cell that sorts by its column. Clicking the same column again flips the direction.
 export function SortHeader({ label, sortKey, sort, onSort }) {
   const active = sort.key === sortKey
-  // Every sortable column shows an arrow, so it is clear the column can be sorted.
-  // ↕ = not sorted by this column yet; ▲/▼ = the current sort and its direction.
-  const arrow = active ? (sort.dir === 'asc' ? '▲' : '▼') : '↕'
+  // Every sortable column shows an arrow (↕ until sorted), so it is clear it can be sorted.
+  const arrow = sortArrow(sort, sortKey)
 
   function handleClick() {
-    onSort({ key: sortKey, dir: active && sort.dir === 'asc' ? 'desc' : 'asc' })
+    onSort(nextSort(sort, sortKey))
   }
 
   return (
@@ -37,7 +38,7 @@ export function PlainHeader({ label }) {
 export const PAGE_SIZES = [10, 50, 100]
 
 export function Pager({ total, page, pageSize, onPage, onPageSize }) {
-  const pages = Math.max(1, Math.ceil(total / pageSize))
+  const pages = pageCount(total, pageSize)
 
   return (
     <div className="pager">
