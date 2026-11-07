@@ -11,9 +11,9 @@ core categories first; **EXTRA** and **EDGE** are built last and cut from the bo
 
 ### URL Management
 
-- [ ] **URL-01**: User can add a URL with a check interval from the UI
-- [ ] **URL-02**: User can remove a URL from the UI
-- [ ] **URL-03**: User can change a URL's check interval; the new interval applies on the next scheduler tick without a restart
+- [x] **URL-01**: User can add a URL with a check interval from the UI
+- [x] **URL-02**: User can remove a URL from the UI
+- [x] **URL-03**: User can change a URL's check interval; the new interval applies on the next scheduler tick without a restart
 - [x] **URL-04**: On first run the app seeds a few URLs, including one that is expected to fail, so the demo shows both states
 
 ### Checks
@@ -22,7 +22,7 @@ core categories first; **EXTRA** and **EDGE** are built last and cut from the bo
 - [x] **CHK-02**: Each check records the HTTP status code and the response time in milliseconds
 - [x] **CHK-03**: A check is healthy when it gets a 200–399 status within the timeout
 - [x] **CHK-04**: A check with a 4xx/5xx status, or with no response (timeout, DNS failure, connection refused), is recorded as unhealthy; when there is no response, the error reason is saved
-- [ ] **CHK-05**: Checks for different URLs run concurrently with a concurrency cap, so one slow URL does not delay the others
+- [x] **CHK-05**: Checks for different URLs run concurrently with a concurrency cap, so one slow URL does not delay the others
 
 ### History
 
@@ -99,15 +99,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| URL-01 | Phase 2 | Pending |
-| URL-02 | Phase 2 | Pending |
-| URL-03 | Phase 2 | Pending |
+| URL-01 | Phase 2 | Complete |
+| URL-02 | Phase 2 | Complete |
+| URL-03 | Phase 2 | Complete |
 | URL-04 | Phase 1 | Complete |
 | CHK-01 | Phase 1 | Complete |
 | CHK-02 | Phase 1 | Complete |
 | CHK-03 | Phase 1 | Complete |
 | CHK-04 | Phase 1 | Complete |
-| CHK-05 | Phase 2 | Pending |
+| CHK-05 | Phase 2 | Complete |
 | HIST-01 | Phase 1 | Complete |
 | HIST-02 | Phase 1 | Complete |
 | HIST-03 | Phase 2 | Complete |

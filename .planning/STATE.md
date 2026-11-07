@@ -3,11 +3,11 @@ gsd_state_version: "1.0"
 current_phase: 1
 current_phase_name: Walking Skeleton
 status: executing
-stopped_at: Phase 2 task 2 done; next is task 3 (URL management + concurrency)
-last_updated: "2026-11-07T18:41:09.703Z"
+stopped_at: Phase 2 task 3 done; next is task 4 (retention)
+last_updated: "2026-11-07T18:46:58.895Z"
 last_activity: 2026-11-07
-last_activity_desc: "Phase 2 task 2: core xUnit tests"
-state_head: 4b78962673f20a0d6d10d4a2d460cce1dae4bc80
+last_activity_desc: "Phase 2 task 3: URL management + concurrent checks"
+state_head: d3c65120942257b2d0989ee36315e4fa86d7dc60
 progress:
   total_phases: 2
   completed_phases: 0
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-11-07)
 Phase: 2 of 2 (Features & README) — Phase 1 done via quick task 261107-gje
 Plan: run as /gsd-quick tasks (D-015)
 Status: Ready for Phase 2
-Last activity: 2026-11-07 - Phase 2 task 2: core xUnit tests (12 passing)
+Last activity: 2026-11-07 - Phase 2 task 3: URL management + concurrent checks
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -87,6 +87,7 @@ None yet.
 | 2 | Phase 1 review fixes: npm ci, lean .gitignore, DB path pinned to content root | 2026-11-07 | de3bd79 | — |
 | 261107-h5q | Phase 2 task 1: window picker 1h/24h/7d, uptime % + avg ms, recent-checks strip, 5s polling, /checks?window= API | 2026-11-07 | 9090ad2 | [261107-h5q-phase-2-task-1-history-window-stats-stri](./quick/261107-h5q-phase-2-task-1-history-window-stats-stri/) |
 | 4 | Phase 2 task 2: core xUnit tests (12) for checker, saving, restart, window read-back, summary (inline) | 2026-11-07 | 4b78962 | — |
+| 5 | Phase 2 task 3: add/re-time/remove URLs (API + UI) and capped concurrent checks (inline) | 2026-11-07 | d3c6512 | — |
 
 ## Deferred Items
 
@@ -99,5 +100,5 @@ Items acknowledged and deferred at milestone close, most recent first:
 ## Session Continuity
 
 Last session: 2026-11-07T17:28:45.167Z
-Stopped at: Phase 2 task 2 done; next is task 3 (URL management + concurrency)
+Stopped at: Phase 2 task 3 done; next is task 4 (retention)
 Resume file: .planning/quick/261107-gje-phase-1-walking-skeleton/261107-gje-SUMMARY.md
