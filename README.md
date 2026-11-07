@@ -7,7 +7,7 @@ which URLs are healthy right now and how each one has behaved over a chosen time
 ![Dashboard](docs/dashboard.png)
 
 - **Decision log:** [`log.json`](log.json) holds every decision (D-001…D-033) with the
-  alternatives and tradeoffs, every edge case (EC-001…EC-032), and notes on how AI was used.
+  alternatives and tradeoffs, every edge case (EC-001…EC-033), and notes on how AI was used.
 - **Plain-English backend notes:** [`docs/CONCEPTS.md`](docs/CONCEPTS.md) explains each backend
   idea used here, with a JavaScript comparison.
 - **The brief as given to the AI:** [`docs/KICKOFF_PROMPT.md`](docs/KICKOFF_PROMPT.md).
@@ -33,7 +33,7 @@ creates `server/healthmonitor.db` and seeds four URLs, so you see every state at
 | `https://github.com/this-page-should-not-exist-rosnet` | unhealthy with a status code (404) |
 | `https://unreachable.invalid` | unhealthy with no response and an error reason (DNS; `.invalid` can never resolve) |
 
-**Tests:** `dotnet test` (56 backend tests, ~1 s) and `npm --prefix web test` (7 frontend tests).
+**Tests:** `dotnet test` (56 backend tests, ~1 s) and `npm --prefix web test` (9 frontend tests).
 Backend line coverage is **92%**: `dotnet test --collect "Code Coverage;Format=cobertura"`.
 
 **Frontend work with hot reload:** run `dotnet run --project server` in one terminal and
@@ -182,7 +182,8 @@ the timer loop after its first pass and error-logging branches.
 **Frontend (`web/src/logic.test.js`, Node's built-in test runner, no packages):** the UI's
 decisions live in `web/src/logic.js` and are tested directly: sort toggling and arrows, page count
 (never 0), row status (pending, then the last result), a real 0% vs a missing value, and the
-tooltip for a check with no response.
+tooltip for a check with no response, and the settings' defaults and floors (60 s / 10 s minimum,
+30 days / 1 day minimum), which stop a missing value from turning into a 1 ms refresh loop (EC-033).
 
 **Each test can fail for a real reason.** I broke the code on purpose and watched the guarding test
 fail: changing `<= 399` to `< 399` fails the 399 case, disabling the window filter fails the
@@ -248,7 +249,7 @@ the scheduler's later ticks (tests run only its start-up pass), and the deferred
 
 This was built with Claude Code (Claude Opus) as a pair, using a lightweight plan → build → verify
 loop. AI use is meant to be visible:
-- Tests: 56 xUnit + 7 frontend (`node:test`).
+- Tests: 56 xUnit + 9 frontend (`node:test`).
 - Every commit carries a `Co-Authored-By: Claude` trailer.
 - Every decision in `log.json` has an `ai` block that says who suggested it and what I accepted,
   changed, or rejected.
@@ -301,7 +302,7 @@ log.json           decisions, edge cases, AI notes, timebox
 
 ## Time
 
-**Build time: 2h 29m 29s of the 3-hour cap.** Recorded in `log.json` → `timebox`, and checkable from
+**Build time: 2h 32m 57s of the 3-hour cap.** Recorded in `log.json` → `timebox`, and checkable from
 the commit timestamps (`TZ=UTC git log --date=iso-strict-local`):
 
 | Moment | UTC | Commit |
@@ -309,7 +310,7 @@ the commit timestamps (`TZ=UTC git log --date=iso-strict-local`):
 | Build clock starts (first line of app code) | 18:05:44 | `0937bda` at 18:06:00 |
 | Core complete (every v1 requirement + README) | 19:34:01 | `99a6f75` |
 | First wrap-up (clock stopped at 1h 52m 34s) | 19:58:18 | `e5efa1d` |
-| App changes after review (refresh redesigns D-031 → D-032 → D-033) | 20:17:25 → 20:35:13 | `7a883c1`, `5d362bb`, `855cfcf` |
+| App changes after review (refresh redesigns D-031 → D-032 → D-033, then fixes) | 20:17:25 → 20:38:41 | `7a883c1`, `5d362bb`, `855cfcf` |
 
 Planning before the clock (requirements, roadmap, process setup) is not counted, per the timebox
 rule. A fresh-clone check at the first wrap-up passed (clone → `dotnet run` → UI served in 6 s, all

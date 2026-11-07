@@ -4,10 +4,10 @@
   "timebox": {
     "capHours": 3,
     "buildStartedAt": "2026-11-07T18:05:44Z",
-    "buildEndedAt": "2026-11-07T20:35:13Z",
+    "buildEndedAt": "2026-11-07T20:38:41Z",
     "notes": "Clock starts with the first line of application code. Planning and setup before that are logged separately below.",
     "result": {
-      "buildDuration": "2h 29m 29s of the 3h cap",
+      "buildDuration": "2h 32m 57s of the 3h cap",
       "howMeasured": "From the logged start (first line of app code) to the last commit that changed app or test code. All times are git commit timestamps in UTC, so anyone can check them with: TZ=UTC git log --date=iso-strict-local",
       "evidence": [
         {
@@ -41,6 +41,10 @@
         {
           "what": "Check-every default 60 s and 10 s floor (owner request)",
           "when": "2026-11-07T20:35:13Z"
+        },
+        {
+          "what": "Fix: frontend defaults for the settings, no NaN refresh (EC-033)",
+          "when": "2026-11-07T20:38:41Z"
         }
       ],
       "outsideTheClock": "Planning and setup before 18:05:44Z (requirements, roadmap, Phase 1 context, GSD process) are not build time, per the timebox note.",
@@ -1265,7 +1269,7 @@
       "title": "Retention days are not validated on the server",
       "description": "PUT /api/settings accepts 0 or negative days; 0 would archive every result on the next sweep (nothing is lost, it moves to the archive). The form uses min=1.",
       "status": "deferred",
-      "plain": "The server does not stop a bad retention number, but the form in the page does."
+      "plain": "The server does not stop a bad retention number, but the form in the page does. The page now shows 30 days instead of 0 and offers Save, but the server itself still accepts 0."
     },
     {
       "id": "EC-031",
@@ -1282,6 +1286,15 @@
       "description": "POST /api/urls/{id}/check does not use CheckScheduler's in-flight set, so if the scheduler starts the same URL at the same moment, two checks run and both rows are saved.",
       "status": "deferred",
       "plain": "If you press 'check now' at the exact moment the timer also checks, you get two results at once."
+    },
+    {
+      "id": "EC-033",
+      "priority": 1,
+      "title": "A missing or bad setting made the dashboard poll the API every millisecond",
+      "description": "With an older server (no checkIntervalSeconds in /api/settings) the page computed setInterval(load, NaN), which browsers run at ~1 ms. Found by the owner as 'API calls going crazy'.",
+      "status": "fixed",
+      "fixedNote": "logic.checkSecondsOrDefault / retentionDaysOrDefault give defaults (60 s, 30 days) and floors (10 s, 1 day) to every value from the server or the user; both boxes start at their defaults. Tested, and checked against a fake old-style server.",
+      "plain": "If the server did not send the check time, the page asked the server for data nonstop. Now the page uses safe default values."
     }
   ],
   "aiNotes": [
@@ -1352,6 +1365,10 @@
     {
       "date": "2026-11-07",
       "note": "For D-033 Claude's scripted edit of api.js cut a range that also contained checkNow (the functions were not in the assumed order); the build failed, and Claude restored checkNow before finishing. A deliberate break (scheduler ignoring the global interval) made the new scheduler test fail as intended."
+    },
+    {
+      "date": "2026-11-07",
+      "note": "Bug introduced by Claude in D-033: the dashboard trusted checkIntervalSeconds from the server, and the owner's still-running older server did not send it, so the refresh timer got NaN and flooded the API (EC-033). Claude confirmed the cause first (curl showed {\"retentionDays\":0}; a node demo showed setInterval(fn, NaN) firing 86 times in 100 ms), then fixed it in the frontend with defaults and floors rather than only telling the owner to restart."
     }
   ]
 }
