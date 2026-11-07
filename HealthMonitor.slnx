@@ -2,4 +2,7 @@
   <Folder Name="/server/">
     <Project Path="server/HealthMonitor.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HealthMonitor.Tests/HealthMonitor.Tests.csproj" />
+  </Folder>
 </Solution>
