@@ -7,7 +7,11 @@ async function send(method, path, body) {
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   })
-  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  if (!response.ok) {
+    // A 400 carries { error: "why" }; show that, and fall back to the status code.
+    const body = await response.json().catch(() => null)
+    throw new Error(body?.error ?? `HTTP ${response.status}`)
+  }
 }
 
 export function addUrl(url, intervalSeconds) {

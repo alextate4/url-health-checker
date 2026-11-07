@@ -101,9 +101,15 @@ app.MapGet("/api/urls/{id}/checks", async (long id, string? window, Database db)
     return Results.Ok(await db.GetChecksSinceAsync(id, DateTime.UtcNow - span));
 });
 
-// URL management (URL-01..03). Input is not validated yet: that is a logged edge case, built only if time is left.
+// URL management (URL-01..03). Input rules live in InputRules.cs (EC-002, EC-003).
 app.MapPost("/api/urls", async (NewUrl body, Database db) =>
 {
+    var problem = InputRules.UrlProblem(body.Url) ?? InputRules.IntervalProblem(body.IntervalSeconds);
+    if (problem is not null)
+    {
+        return Results.BadRequest(new { error = problem });
+    }
+
     var id = await db.AddUrlAsync(body.Url, body.IntervalSeconds);
     return Results.Created($"/api/urls/{id}", new { id });
 });
@@ -114,6 +120,10 @@ app.MapPatch("/api/urls/{id}", async (long id, UrlChange body, Database db) =>
     if (body.IntervalSeconds is null && body.Paused is null)
     {
         return Results.BadRequest(new { error = "send intervalSeconds, paused, or both" });
+    }
+    if (body.IntervalSeconds is int requested && InputRules.IntervalProblem(requested) is string problem)
+    {
+        return Results.BadRequest(new { error = problem });
     }
     if (body.IntervalSeconds is int seconds && !await db.UpdateIntervalAsync(id, seconds))
     {
