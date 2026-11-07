@@ -4,10 +4,10 @@
   "timebox": {
     "capHours": 3,
     "buildStartedAt": "2026-11-07T18:05:44Z",
-    "buildEndedAt": "2026-11-07T19:58:18Z",
+    "buildEndedAt": "2026-11-07T20:17:25Z",
     "notes": "Clock starts with the first line of application code. Planning and setup before that are logged separately below.",
     "result": {
-      "buildDuration": "1h 52m 34s of the 3h cap (62.5%)",
+      "buildDuration": "2h 11m 41s of the 3h cap",
       "howMeasured": "From the logged start (first line of app code) to the last commit that changed app or test code. All times are git commit timestamps in UTC, so anyone can check them with: TZ=UTC git log --date=iso-strict-local",
       "evidence": [
         {
@@ -25,10 +25,15 @@
         {
           "what": "Last app/test-code commit e5efa1d (endpoint tests)",
           "when": "2026-11-07T19:58:18Z"
+        },
+        {
+          "what": "Post-wrap-up app change 7a883c1 (auto-refresh toggle, owner request after the pause investigation)",
+          "when": "2026-11-07T20:17:25Z"
         }
       ],
-      "outsideTheClock": "Planning and setup before 18:05:44Z (requirements, roadmap, Phase 1 context, GSD process) are not build time, per the timebox note. Wrap-up docs after 19:58:18Z (this entry, CONCEPTS, fresh-clone check) changed no app code.",
-      "finalCheck": "Fresh clone verified at wrap-up: no wwwroot/node_modules/db, one `dotnet run` built and served the UI in 6 s, 4 seeds showed healthy/404/DNS-failure correctly, 55 backend + 7 frontend tests passed, git tree stayed clean."
+      "outsideTheClock": "Planning and setup before 18:05:44Z (requirements, roadmap, Phase 1 context, GSD process) are not build time, per the timebox note.",
+      "finalCheck": "Fresh clone verified at wrap-up: no wwwroot/node_modules/db, one `dotnet run` built and served the UI in 6 s, 4 seeds showed healthy/404/DNS-failure correctly, 55 backend + 7 frontend tests passed, git tree stayed clean.",
+      "note": "The first wrap-up stopped the clock at 19:58:18Z (1h 52m 34s). The owner then asked for one more app change (D-031), so the clock was re-opened and the end moved to that commit. Still inside the 3h cap."
     }
   },
   "decisions": [

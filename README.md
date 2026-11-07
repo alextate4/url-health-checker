@@ -289,15 +289,16 @@ log.json           decisions, edge cases, AI notes, timebox
 
 ## Time
 
-**Build time: 1h 52m 34s of the 3-hour cap.** Recorded in `log.json` → `timebox`, and checkable
-from the commit timestamps (`TZ=UTC git log --date=iso-strict-local`):
+**Build time: 2h 11m 41s of the 3-hour cap.** Recorded in `log.json` → `timebox`, and checkable from
+the commit timestamps (`TZ=UTC git log --date=iso-strict-local`):
 
 | Moment | UTC | Commit |
 |---|---|---|
 | Build clock starts (first line of app code) | 18:05:44 | `0937bda` at 18:06:00 |
 | Core complete (every v1 requirement + README) | 19:34:01 | `99a6f75` |
-| Last app or test code | 19:58:18 | `e5efa1d` |
+| First wrap-up (clock stopped at 1h 52m 34s) | 19:58:18 | `e5efa1d` |
+| One more app change after review (auto-refresh, D-031) | 20:17:25 | `7a883c1` |
 
 Planning before the clock (requirements, roadmap, process setup) is not counted, per the timebox
-rule. After 19:58 only docs changed: this section, CONCEPTS.md, and a final fresh-clone check
-(clone → `dotnet run` → UI served in 6 s, all tests pass).
+rule. A fresh-clone check at the first wrap-up passed (clone → `dotnet run` → UI served in 6 s, all
+tests pass).
