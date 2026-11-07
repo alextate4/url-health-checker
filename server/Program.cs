@@ -54,4 +54,21 @@ app.MapGet("/api/urls/{id}/checks", async (long id, string? window, Database db)
     return Results.Ok(await db.GetChecksSinceAsync(id, DateTime.UtcNow - span));
 });
 
+// URL management (URL-01..03). Input is not validated yet: that is a logged edge case, built only if time is left.
+app.MapPost("/api/urls", async (NewUrl body, Database db) =>
+{
+    var id = await db.AddUrlAsync(body.Url, body.IntervalSeconds);
+    return Results.Created($"/api/urls/{id}", new { id });
+});
+
+app.MapPatch("/api/urls/{id}", async (long id, IntervalChange body, Database db) =>
+    await db.UpdateIntervalAsync(id, body.IntervalSeconds) ? Results.NoContent() : Results.NotFound());
+
+app.MapDelete("/api/urls/{id}", async (long id, Database db) =>
+    await db.DeleteUrlAsync(id) ? Results.NoContent() : Results.NotFound());
+
 app.Run();
+
+// The JSON bodies the UI sends. ASP.NET Core fills these from camelCase JSON automatically.
+record NewUrl(string Url, int IntervalSeconds);
+record IntervalChange(int IntervalSeconds);

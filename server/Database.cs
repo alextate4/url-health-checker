@@ -205,6 +205,43 @@ public class Database
         });
     }
 
+    // Returns the new id. The scheduler sees a URL with no checks as due, so it is checked on the next tick.
+    public async Task<long> AddUrlAsync(string url, int intervalSeconds)
+    {
+        const string sql = """
+            INSERT INTO urls (url, interval_seconds, created_at) VALUES (@Url, @IntervalSeconds, @CreatedAt);
+            SELECT last_insert_rowid();
+            """;
+
+        using var connection = new SqliteConnection(_connectionString);
+        return await connection.ExecuteScalarAsync<long>(
+            sql, new { Url = url, IntervalSeconds = intervalSeconds, CreatedAt = DateTime.UtcNow.ToString("o") });
+    }
+
+    // The scheduler reads interval_seconds on every pass, so the new value applies on the next tick (URL-03).
+    // Returns false when no URL has this id.
+    public async Task<bool> UpdateIntervalAsync(long id, int intervalSeconds)
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        var changed = await connection.ExecuteAsync(
+            "UPDATE urls SET interval_seconds = @IntervalSeconds WHERE id = @Id",
+            new { Id = id, IntervalSeconds = intervalSeconds });
+        return changed > 0;
+    }
+
+    // Removes the URL and its history together, in one transaction, so no orphan results are left.
+    // Returns false when no URL has this id.
+    public async Task<bool> DeleteUrlAsync(long id)
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync();
+        using var transaction = connection.BeginTransaction();
+        await connection.ExecuteAsync("DELETE FROM check_results WHERE url_id = @Id", new { Id = id }, transaction);
+        var removed = await connection.ExecuteAsync("DELETE FROM urls WHERE id = @Id", new { Id = id }, transaction);
+        transaction.Commit();
+        return removed > 0;
+    }
+
     private class CheckRow
     {
         public string CheckedAt { get; set; } = "";
