@@ -81,43 +81,24 @@ public class ApiTests
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
-    // URL-01 + D-026 + EC-004: add returns 201; a duplicate is 409; bad input is 400 with a reason.
+    // URL-01 + D-026 + EC-004: add returns 201; a duplicate is 409; a bad URL is 400 with a reason.
     [Fact]
     public async Task Adding_a_url_validates_input_and_refuses_duplicates()
     {
         using var app = new ApiFactory();
         var client = app.CreateClient();
 
-        var created = await client.PostAsync("/api/urls", Body(new { url = "https://example.org", intervalSeconds = 60 }));
-        var duplicate = await client.PostAsync("/api/urls", Body(new { url = "HTTPS://EXAMPLE.ORG/", intervalSeconds = 60 }));
-        var internalUrl = await client.PostAsync("/api/urls", Body(new { url = "http://127.0.0.1", intervalSeconds = 60 }));
-        var tooFast = await client.PostAsync("/api/urls", Body(new { url = "https://example.net", intervalSeconds = 5 }));
+        var created = await client.PostAsync("/api/urls", Body(new { url = "https://example.org" }));
+        var duplicate = await client.PostAsync("/api/urls", Body(new { url = "HTTPS://EXAMPLE.ORG/" }));
+        var internalUrl = await client.PostAsync("/api/urls", Body(new { url = "http://127.0.0.1" }));
+        var notAUrl = await client.PostAsync("/api/urls", Body(new { url = "example.net" }));
 
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, internalUrl.StatusCode);
         Assert.Contains("local network", (await Json(internalUrl)).GetProperty("error").GetString());
-        Assert.Equal(HttpStatusCode.BadRequest, tooFast.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, notAUrl.StatusCode);
         Assert.Equal(5, app.Temp.CountRows("urls"));
-    }
-
-    // URL-03 + EXTRA-01: PATCH changes the interval and the paused flag; empty or unknown is refused.
-    [Fact]
-    public async Task Patch_changes_interval_and_pause()
-    {
-        using var app = new ApiFactory();
-        var client = app.CreateClient();
-
-        Assert.Equal(HttpStatusCode.NoContent,
-            (await client.PatchAsync("/api/urls/2", Body(new { intervalSeconds = 120, paused = true }))).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.PatchAsync("/api/urls/2", Body(new { }))).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound,
-            (await client.PatchAsync("/api/urls/999", Body(new { paused = true }))).StatusCode);
-
-        var row = (await Json(await client.GetAsync("/api/urls"))).GetProperty("rows").EnumerateArray()
-            .Single(r => r.GetProperty("id").GetInt32() == 2);
-        Assert.Equal(120, row.GetProperty("intervalSeconds").GetInt32());
-        Assert.True(row.GetProperty("paused").GetBoolean());
     }
 
     // URL-02 + D-023: DELETE hides the URL from the dashboard but its history stays in /api/checks.
@@ -153,34 +134,25 @@ public class ApiTests
         Assert.Equal(HttpStatusCode.NotFound, (await client.PostAsync("/api/urls/999/check", null)).StatusCode);
     }
 
-    // CONF-01: the retention setting can be read and changed.
+    // CONF-01 + D-033: retention and the one check interval can be read and changed, each on its own;
+    // the interval keeps the 10 s – 1 day rule.
     [Fact]
-    public async Task Retention_setting_round_trips()
+    public async Task Settings_round_trip_and_the_interval_is_validated()
     {
         using var app = new ApiFactory();
         var client = app.CreateClient();
 
-        Assert.Equal(30, (await Json(await client.GetAsync("/api/settings"))).GetProperty("retentionDays").GetInt32());
+        var defaults = await Json(await client.GetAsync("/api/settings"));
+        Assert.Equal(30, defaults.GetProperty("retentionDays").GetInt32());
+        Assert.Equal(30, defaults.GetProperty("checkIntervalSeconds").GetInt32());
+
         Assert.Equal(HttpStatusCode.NoContent, (await client.PutAsync("/api/settings", Body(new { retentionDays = 7 }))).StatusCode);
-        Assert.Equal(7, (await Json(await client.GetAsync("/api/settings"))).GetProperty("retentionDays").GetInt32());
-    }
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PutAsync("/api/settings", Body(new { checkIntervalSeconds = 60 }))).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsync("/api/settings", Body(new { checkIntervalSeconds = 5 }))).StatusCode);
 
-    // D-032: one row can be read on its own (a playing row refreshes itself with this).
-    [Fact]
-    public async Task Single_row_endpoint_returns_the_row_or_404()
-    {
-        using var app = new ApiFactory();
-        var client = app.CreateClient();
-        await client.GetAsync("/api/urls");
-        await app.Temp.Db.InsertCheckResultAsync(2, new CheckResult(200, 70, true, null));
-
-        var row = await Json(await client.GetAsync("/api/urls/2?window=24h"));
-        Assert.Equal(200, row.GetProperty("lastCheck").GetProperty("statusCode").GetInt32());
-        Assert.Equal(1, row.GetProperty("summary").GetProperty("checkCount").GetInt32());
-
-        await client.DeleteAsync("/api/urls/2");
-        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/api/urls/2")).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/urls/3?window=2h")).StatusCode);
+        var saved = await Json(await client.GetAsync("/api/settings"));
+        Assert.Equal(7, saved.GetProperty("retentionDays").GetInt32());
+        Assert.Equal(60, saved.GetProperty("checkIntervalSeconds").GetInt32());
     }
 
     // HIST-03: one URL's checks inside a window come back as a list.

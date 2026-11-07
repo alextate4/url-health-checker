@@ -1,7 +1,9 @@
 using System.Net;
+using Dapper;
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging.Abstractions;
 
-// Proves CHK-01, CHK-05 and EXTRA-01 by running the real background loop against a temp database
+// Proves CHK-01, CHK-05 and the global interval (D-033) by running the real background loop against a temp database
 // and a fake network. The tick is 60 s, so only the first pass (which runs at start) happens.
 public class CheckSchedulerTests
 {
@@ -14,20 +16,45 @@ public class CheckSchedulerTests
     private static FakeHandler AlwaysOk() =>
         new((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)));
 
-    // CHK-01 + EXTRA-01: every due URL is checked and saved; a paused URL is skipped.
+    // CHK-01: every URL that was never checked is due, so the first pass checks and saves all of them.
     [Fact]
-    public async Task First_pass_checks_every_due_url_except_paused_ones()
+    public async Task First_pass_checks_every_never_checked_url()
     {
         using var temp = new TempDatabase();
-        await temp.Db.InitializeAsync(); // 4 seeds, none checked yet, so all are due
-        await temp.Db.SetPausedAsync(4, true);
+        await temp.Db.InitializeAsync(); // 4 seeds, none checked yet
         var scheduler = Scheduler(temp, AlwaysOk());
 
         await scheduler.StartAsync(CancellationToken.None);
-        await Wait.UntilAsync(() => temp.CountRows("check_results") == 3);
+        await Wait.UntilAsync(() => temp.CountRows("check_results") == 4);
         await scheduler.StopAsync(CancellationToken.None);
 
-        Assert.Equal(0, temp.CountRows("check_results", urlId: 4));
+        Assert.Equal(1, temp.CountRows("check_results", urlId: 4));
+    }
+
+    // D-033: the one global interval decides what is due. A URL checked 20 s ago is due with a 10 s
+    // interval and not due with the default 30 s.
+    [Theory]
+    [InlineData(10, 2)]
+    [InlineData(30, 1)]
+    public async Task Global_check_interval_decides_what_is_due(int intervalSeconds, int expectedRows)
+    {
+        using var temp = new TempDatabase();
+        await temp.Db.InitializeAsync();
+        await temp.Db.SetCheckIntervalSecondsAsync(intervalSeconds);
+        using (var connection = new SqliteConnection(temp.ConnectionString))
+        {
+            await connection.ExecuteAsync(
+                "INSERT INTO check_results (url_id, checked_at, status_code, response_time_ms, healthy, error) VALUES (1, @At, 200, 50, 1, NULL)",
+                new { At = DateTime.UtcNow.AddSeconds(-20).ToString("o") });
+        }
+        var scheduler = Scheduler(temp, AlwaysOk());
+
+        await scheduler.StartAsync(CancellationToken.None);
+        await Wait.UntilAsync(() => temp.CountRows("check_results", urlId: 4) == 1); // the pass has run
+        await Wait.UntilAsync(() => temp.CountRows("check_results") == 3 + expectedRows);
+        await scheduler.StopAsync(CancellationToken.None);
+
+        Assert.Equal(expectedRows, temp.CountRows("check_results", urlId: 1));
     }
 
     // CHK-01: a URL checked less than its interval ago is not due, so it is not checked again.
@@ -36,7 +63,7 @@ public class CheckSchedulerTests
     {
         using var temp = new TempDatabase();
         await temp.Db.InitializeAsync();
-        await temp.Db.InsertCheckResultAsync(1, new CheckResult(200, 50, true, null)); // seed 1: 30 s interval
+        await temp.Db.InsertCheckResultAsync(1, new CheckResult(200, 50, true, null)); // default interval: 30 s
         var scheduler = Scheduler(temp, AlwaysOk());
 
         await scheduler.StartAsync(CancellationToken.None);

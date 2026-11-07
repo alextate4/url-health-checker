@@ -107,20 +107,6 @@ public class DatabaseTests : IDisposable
         Assert.False(await db.SoftDeleteUrlAsync(UrlId)); // a second remove finds nothing live (404)
     }
 
-    // EXTRA-01: pausing sets the flag the scheduler reads; resuming clears it.
-    [Fact]
-    public async Task Pause_and_resume_flip_the_paused_flag()
-    {
-        var db = new Database(ConnectionString);
-        await db.InitializeAsync();
-
-        await db.SetPausedAsync(UrlId, true);
-        Assert.True((await db.GetUrlStatusesAsync()).Single(u => u.Id == UrlId).Paused);
-
-        await db.SetPausedAsync(UrlId, false);
-        Assert.False((await db.GetUrlStatusesAsync()).Single(u => u.Id == UrlId).Paused);
-    }
-
     // EC-004: the same URL with different case or a trailing slash is a duplicate; a removed one is not.
     [Fact]
     public async Task Duplicate_check_ignores_case_and_trailing_slash_but_not_removed_urls()
