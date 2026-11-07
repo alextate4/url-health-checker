@@ -219,3 +219,57 @@ arrive. The page body is not downloaded.
 
 **Why we use it:** We only need the status code and the time. Some pages are very big. This
 setting keeps each check fast and small.
+
+---
+
+## Query strings and Results in Minimal APIs
+
+**What it is:** A query string is the part of a URL after the `?`. For example,
+`/api/urls?window=24h` has one value. The name is `window`. The value is `24h`. In a Minimal API,
+you add `string? window` to the handler. ASP.NET Core fills it from the URL. The `?` after
+`string` means the value can be missing. Without it, the value is required.
+
+`Results.BadRequest(...)` sends an HTTP 400 reply. The 400 code means the caller made a mistake.
+`Results.Ok(...)` sends a 200 reply with JSON.
+
+**JavaScript comparison:** `string? window` is like `req.query.window` in Express.
+`Results.BadRequest({ error: "..." })` is like `res.status(400).json({ error: "..." })`.
+
+**Why we use it:** The dashboard picks a window with the URL. We allow only 1h, 24h, and 7d. Any
+other value gets a 400. A missing value uses 1h.
+
+---
+
+## SQL aggregates: COUNT, AVG and ROUND
+
+**What it is:** An aggregate turns many rows into one number. `COUNT(*)` counts the rows.
+`AVG(x)` finds the average of `x`. `ROUND(x, 1)` cuts a number to one decimal place. `AVG` skips
+NULL values. It does not count them.
+
+The `healthy` column is 1 or 0. So `AVG(healthy) * 100` is the share of healthy checks. That is
+the uptime percent. If no rows match, `COUNT` gives 0 and `AVG` gives NULL. NULL becomes `null` in
+JSON. The UI shows "—" for it.
+
+**JavaScript comparison:** `COUNT(*)` is like `arr.length`. `AVG(x)` is like a `reduce` that adds
+every value and divides by the count. The difference is that `AVG` ignores NULL on its own.
+
+**Why we use it:** The database does the counting. The browser gets a few numbers, not thousands
+of rows.
+
+---
+
+## Comparing UTC times stored as text
+
+**What it is:** We store each check time as text, like `2026-11-07T18:30:00.0000000Z`. Text sorts
+alphabetically. If every time uses the same format and the same UTC zone, alphabetical order is
+also time order. So `checked_at >= @Since` works as a time filter.
+
+We build the cutoff as the same kind of text. A C# `DateTime` parameter would be written in
+another format. That format has a space and no `Z`. Compared as text, it would put old rows in the
+wrong window.
+
+**JavaScript comparison:** It is like `new Date().toISOString()`. Two ISO strings in the same
+format sort in time order.
+
+**Why we use it:** SQLite has no real date type. Plain text with one fixed format is the simplest
+way to store times and filter them.
