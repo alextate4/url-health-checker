@@ -1,11 +1,17 @@
 using Dapper;
 using Microsoft.Data.Sqlite;
 
-// The latest check for one URL, as the dashboard needs it.
-public record LastCheck(string CheckedAt, long? StatusCode, long ResponseTimeMs, bool Healthy, string? Error);
+// One check read back from check_results (the newest one, a recent one, or one from history).
+public record SavedCheck(string CheckedAt, long? StatusCode, long ResponseTimeMs, bool Healthy, string? Error);
 
 // One row of the dashboard: a URL plus its newest check (null before the first check).
-public record UrlStatus(long Id, string Url, long IntervalSeconds, LastCheck? LastCheck);
+public record UrlStatus(long Id, string Url, long IntervalSeconds, SavedCheck? LastCheck);
+
+// Numbers for one URL over the chosen window. Percent and average are null when there is nothing to count.
+public record WindowSummary(long CheckCount, double? UptimePercent, double? AvgResponseTimeMs);
+
+// What /api/urls returns for each URL: the Phase 1 fields plus the window summary.
+public record DashboardRow(long Id, string Url, long IntervalSeconds, SavedCheck? LastCheck, WindowSummary Summary);
 
 public class Database
 {
@@ -98,9 +104,47 @@ public class Database
             row.IntervalSeconds,
             row.CheckedAt is null
                 ? null
-                : new LastCheck(row.CheckedAt, row.StatusCode, row.ResponseTimeMs ?? 0, row.Healthy == 1, row.Error)))
+                : new SavedCheck(row.CheckedAt, row.StatusCode, row.ResponseTimeMs ?? 0, row.Healthy == 1, row.Error)))
             .ToList();
     }
+
+    // One request feeds the whole dashboard. The window cutoff comes in as a parameter, so a test can call this directly.
+    public async Task<List<DashboardRow>> GetDashboardAsync(DateTime since)
+    {
+        var statuses = await GetUrlStatusesAsync();
+        var rows = new List<DashboardRow>();
+
+        // One small query per URL is fine here: SQLite runs inside our process, so there is no network trip (D-018).
+        foreach (var status in statuses)
+        {
+            var summary = await GetWindowSummaryAsync(status.Id, since);
+            rows.Add(new DashboardRow(status.Id, status.Url, status.IntervalSeconds, status.LastCheck, summary));
+        }
+
+        return rows;
+    }
+
+    public async Task<WindowSummary> GetWindowSummaryAsync(long urlId, DateTime since)
+    {
+        // healthy is 1 or 0, so its average is the share of healthy checks.
+        // AVG skips NULL, so only checks that got an HTTP response count toward the average time (D-019).
+        const string sql = """
+            SELECT COUNT(*) AS CheckCount,
+                   ROUND(AVG(healthy) * 100, 1) AS UptimePercent,
+                   ROUND(AVG(CASE WHEN status_code IS NOT NULL THEN response_time_ms END)) AS AvgResponseTimeMs
+            FROM check_results
+            WHERE url_id = @UrlId AND checked_at >= @Since
+            """;
+
+        using var connection = new SqliteConnection(_connectionString);
+        var stats = await connection.QuerySingleAsync<StatsRow>(sql, new { UrlId = urlId, Since = SinceText(since) });
+
+        return new WindowSummary(stats.CheckCount, stats.UptimePercent, stats.AvgResponseTimeMs);
+    }
+
+    // Stored times are "o" text ending in Z. A DateTime parameter would be written in another format
+    // (space, no Z), and text comparison would then let old rows into the window (D1-08).
+    private static string SinceText(DateTime since) => since.ToString("o");
 
     // Always INSERT, never UPDATE: every check is its own row, which is what builds the history.
     public async Task InsertCheckResultAsync(long urlId, CheckResult result)
@@ -120,6 +164,13 @@ public class Database
             Healthy = result.Healthy ? 1 : 0,
             result.Error,
         });
+    }
+
+    private class StatsRow
+    {
+        public long CheckCount { get; set; }
+        public double? UptimePercent { get; set; }
+        public double? AvgResponseTimeMs { get; set; }
     }
 
     // SQLite hands back every INTEGER as long, and Dapper cannot fill the positional records above

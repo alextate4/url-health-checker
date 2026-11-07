@@ -24,6 +24,23 @@ await app.Services.GetRequiredService<Database>().InitializeAsync();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-app.MapGet("/api/urls", (Database db) => db.GetUrlStatusesAsync());
+// The UI offers only these three windows, so any other value is a client mistake (400).
+var historyWindows = new Dictionary<string, TimeSpan>
+{
+    ["1h"] = TimeSpan.FromHours(1),
+    ["24h"] = TimeSpan.FromHours(24),
+    ["7d"] = TimeSpan.FromDays(7),
+};
+
+// string? makes ?window= optional. A plain string would be required, and the framework would answer 400.
+app.MapGet("/api/urls", async (string? window, Database db) =>
+{
+    if (!historyWindows.TryGetValue(window ?? "1h", out var span))
+    {
+        return Results.BadRequest(new { error = "window must be 1h, 24h, or 7d" });
+    }
+
+    return Results.Ok(await db.GetDashboardAsync(DateTime.UtcNow - span));
+});
 
 app.Run();
