@@ -1,0 +1,51 @@
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  color: #1f2933;
+}
+
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border: 1px solid #d5dae0;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+th {
+  background: #f3f5f7;
+}
+
+.dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.dot.healthy {
+  background: #2e9e4f;
+}
+
+.dot.unhealthy {
+  background: #d64545;
+}
+
+.dot.pending {
+  background: #9aa5b1;
+}
+
+.error {
+  color: #d64545;
+}
