@@ -33,7 +33,7 @@ creates `server/healthmonitor.db` and seeds four URLs, so you see every state at
 | `https://github.com/this-page-should-not-exist-rosnet` | unhealthy with a status code (404) |
 | `https://unreachable.invalid` | unhealthy with no response and an error reason (DNS; `.invalid` can never resolve) |
 
-**Tests:** `dotnet test` (37 backend tests) and `npm --prefix web test` (9 frontend tests). Both run in about a second.
+**Tests:** `dotnet test` (37 backend tests) and `npm --prefix web test` (7 frontend tests). Both run in about a second.
 
 **Frontend work with hot reload:** run `dotnet run --project server` in one terminal and
 `npm --prefix web run dev` in another, then open the Vite address. `/api` is proxied to :5080.
@@ -67,8 +67,7 @@ the build step only runs when `server/wwwroot` is missing (EC-014).
 - One row per URL: status (colored dot **plus** a word, so it reads without color), last code, last
   response time, last checked, and uptime % and average response time over the selected
   **1h / 24h / 7d** window.
-- A strip of the 30 newest checks, colored by result, with a tooltip on each box, and a
-  **response-time sparkline** above it (no-response checks are skipped so timeouts don't flatten it).
+- A strip of the 30 newest checks, colored by result, with a tooltip on each box.
 - The clock button opens a pop-up with that URL's **entire history**, sorted and paged.
 - Add a URL with its interval. Change the interval in place (it applies on the next tick, with no
   restart). **Check now** (⚡) runs one check immediately. **Pause / play** a URL. **Remove** it with
@@ -163,7 +162,7 @@ own temporary SQLite file.
 **Frontend (`web/src/logic.test.js`, Node's built-in test runner, no packages):** the UI's
 decisions live in `web/src/logic.js` and are tested directly: sort toggling and arrows, page count
 (never 0), row status (paused > pending > last result), a real 0% vs a missing value, and the
-tooltip for a check with no response, and the sparkline math (scale, order, skipping timeouts).
+tooltip for a check with no response.
 
 **Each test can fail for a real reason.** I broke the code on purpose and watched the guarding test
 fail: changing `<= 399` to `< 399` fails the 399 case, disabling the window filter fails the
@@ -204,8 +203,9 @@ added without approval), the scheduler loop's timing, and the deferred edge case
 ## What I cut, and what I'd do next
 
 **Cut or changed**
-- **All four stretch extras were built:** pause/resume (EXTRA-01), "check now" (EXTRA-02), the
-  per-URL history view (EXTRA-03), and the sparkline (EXTRA-04).
+- **Response-time sparkline (EXTRA-04): built, then removed.** Pause/resume (EXTRA-01), "check
+  now" (EXTRA-02), and the per-URL history view (EXTRA-03) are in. The sparkline was built and then
+  reverted after review: a moving line in every row was too much visual noise (D-029).
 - **Hard-delete retention:** replaced by archiving (above).
 - **Out of scope per the brief:** alerting, response-body assertions, retry/backoff, auth,
   multi-tenancy, containers, a design system, TypeScript, Postgres.
@@ -225,7 +225,7 @@ added without approval), the scheduler loop's timing, and the deferred edge case
 
 This was built with Claude Code (Claude Opus) as a pair, using a lightweight plan → build → verify
 loop. AI use is meant to be visible:
-- Tests: 37 xUnit + 9 frontend (`node:test`).
+- Tests: 37 xUnit + 7 frontend (`node:test`).
 - Every commit carries a `Co-Authored-By: Claude` trailer.
 - Every decision in `log.json` has an `ai` block that says who suggested it and what I accepted,
   changed, or rejected.

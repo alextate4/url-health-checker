@@ -851,9 +851,9 @@
         "suggestedBy": "Claude (last stretch item)",
         "accepted": "Owner said proceed.",
         "changed": null,
-        "rejected": null
+        "rejected": "The sparkline itself: owner removed it after seeing it, because the moving line was too much visual noise."
       },
-      "status": "accepted"
+      "status": "reverted by owner"
     }
   ],
   "edgeCases": [
