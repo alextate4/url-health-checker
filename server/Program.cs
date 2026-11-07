@@ -186,7 +186,8 @@ record SettingsChange(int RetentionDays);
 record Paging(string Sort, bool Descending, int Page, int PageSize);
 
 // Kept next to ReadPaging so the message matches the rules.
-partial class Program
+// public so the endpoint tests can start this app in memory with WebApplicationFactory<Program>.
+public partial class Program
 {
     const string PagingError = "sort must be a known column, dir asc or desc, pageSize 10, 50, or 100, page 1 or more";
 }
