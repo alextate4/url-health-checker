@@ -74,23 +74,23 @@ export default function UrlRow({ url, onChanged, onError }) {
     <tr>
       <td>
         {/* Drag this cell's corner to change the row height. */}
-        <div className="resizable-row">
+        <div className="resizable-row nowrap">
           <span className={`dot ${status.className}`}></span>
           {status.word}
         </div>
       </td>
-      <td>{url.url}</td>
+      <td className="url-cell">{url.url}</td>
       <td>
         <IntervalEditor url={url} onChanged={onChanged} onError={onError} />
       </td>
       <td>{check?.statusCode ?? '—'}</td>
-      <td>{check ? `${check.responseTimeMs} ms` : '—'}</td>
-      <td>{check ? new Date(check.checkedAt).toLocaleTimeString() : '—'}</td>
+      <td className="nowrap">{check ? `${check.responseTimeMs} ms` : '—'}</td>
+      <td className="nowrap">{check ? new Date(check.checkedAt).toLocaleTimeString() : '—'}</td>
       {/* "=== null", not "||": a real 0% must show as 0%. */}
       <td title={`${summary.checkCount} checks`}>
         {summary.uptimePercent === null ? '—' : `${summary.uptimePercent}%`}
       </td>
-      <td>{summary.avgResponseTimeMs === null ? '—' : `${summary.avgResponseTimeMs} ms`}</td>
+      <td className="nowrap">{summary.avgResponseTimeMs === null ? '—' : `${summary.avgResponseTimeMs} ms`}</td>
       <td>
         <div className="recent">
           {summary.recent.length === 0 ? (
@@ -114,7 +114,9 @@ export default function UrlRow({ url, onChanged, onError }) {
         </div>
         {showHistory && <HistoryModal url={url} onClose={() => setShowHistory(false)} onError={onError} />}
       </td>
-      <td>{check?.error}</td>
+      <td className="error-cell" title={check?.error ?? ''}>
+        {check?.error}
+      </td>
       <td>
         <div className="actions">
           <button

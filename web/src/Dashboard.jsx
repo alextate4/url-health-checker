@@ -83,28 +83,30 @@ export default function Dashboard({ onError }) {
         <p>Loading…</p>
       ) : (
         <>
-          <table>
-            <thead>
-              <tr>
-                {header('Status', 'status')}
-                {header('URL', 'url')}
-                {header('Every', 'interval')}
-                {header('Code', 'statusCode')}
-                {header('Response time', 'responseTimeMs')}
-                {header('Last checked', 'lastChecked')}
-                {header(`Uptime (${timeWindow})`, 'uptime')}
-                {header(`Avg response (${timeWindow})`, 'avg')}
-                <PlainHeader label="Recent checks" />
-                <PlainHeader label="Error" />
-                <PlainHeader label="Actions" />
-              </tr>
-            </thead>
-            <tbody>
-              {data.rows.map((u) => (
-                <UrlRow key={u.id} url={u} onChanged={refresh} onError={onError} />
-              ))}
-            </tbody>
-          </table>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  {header('Status', 'status')}
+                  {header('URL', 'url')}
+                  {header('Every', 'interval')}
+                  {header('Code', 'statusCode')}
+                  {header('Response time', 'responseTimeMs')}
+                  {header('Last checked', 'lastChecked')}
+                  {header(`Uptime (${timeWindow})`, 'uptime')}
+                  {header(`Avg response (${timeWindow})`, 'avg')}
+                  <PlainHeader label="Recent checks" />
+                  <PlainHeader label="Error" />
+                  <PlainHeader label="Actions" />
+                </tr>
+              </thead>
+              <tbody>
+                {data.rows.map((u) => (
+                  <UrlRow key={u.id} url={u} onChanged={refresh} onError={onError} />
+                ))}
+              </tbody>
+            </table>
+          </div>
           <Pager
             total={data.total}
             page={page}

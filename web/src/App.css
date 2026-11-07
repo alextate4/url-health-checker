@@ -17,7 +17,7 @@ body {
 }
 
 main {
-  max-width: 1200px;
+  max-width: 1360px;
   margin: 0 auto;
   padding: 24px;
 }
@@ -96,12 +96,16 @@ tbody tr:hover {
 
 .strip {
   display: flex;
+  flex-wrap: wrap;
   gap: 2px;
+  /* 15 boxes per line, so the 30 newest checks fit in two short rows instead of one wide one. */
+  width: 103px;
+  flex-shrink: 0;
 }
 
 .box {
-  width: 6px;
-  height: 18px;
+  width: 5px;
+  height: 12px;
 }
 
 .box.healthy {
@@ -323,4 +327,45 @@ button.sort {
   resize: vertical;
   overflow: hidden;
   min-height: 1.4em;
+}
+
+/* Layout guard: if the window is still too narrow, the table scrolls inside this box
+   instead of pushing past the page edge. */
+.table-wrap {
+  overflow-x: auto;
+}
+
+th,
+td {
+  padding: 6px 8px;
+  vertical-align: middle;
+}
+
+/* A slightly smaller table font lets all 11 dashboard columns fit on a 1280px screen. */
+table {
+  font-size: 14px;
+}
+
+/* Short values that read badly when broken over two lines. */
+.nowrap {
+  white-space: nowrap;
+}
+
+td.url-cell {
+  min-width: 150px;
+  max-width: 240px;
+  /* Break only a URL that is too long for the cell, never a short one mid-word. */
+  overflow-wrap: break-word;
+}
+
+/* Long error texts (like the DNS message) are cut with "…"; the full text is in the tooltip. */
+td.error-cell {
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.interval input {
+  width: 52px;
 }

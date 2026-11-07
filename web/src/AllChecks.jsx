@@ -57,41 +57,45 @@ export default function AllChecks({ onError, urlId }) {
         <p>Loading…</p>
       ) : (
         <>
-          <table>
-            <thead>
-              <tr>
-                {header('Checked at', 'checkedAt')}
-                {/* In the history modal the URL is already in the title, so the column is left out. */}
-                {!urlId && header('URL', 'url')}
-                {header('Result', 'healthy')}
-                {header('Code', 'statusCode')}
-                {header('Response time', 'responseTimeMs')}
-                <PlainHeader label="Error" />
-              </tr>
-            </thead>
-            <tbody>
-              {data.rows.map((c, i) => (
-                <tr key={`${c.urlId}-${c.checkedAt}-${i}`}>
-                  <td>
-                    <div className="resizable-row">{new Date(c.checkedAt).toLocaleString()}</div>
-                  </td>
-                  {!urlId && (
-                    <td>
-                      {c.url}
-                      {c.urlRemoved && <span className="tag">removed</span>}
-                    </td>
-                  )}
-                  <td>
-                    <span className={`dot ${c.healthy ? 'healthy' : 'unhealthy'}`}></span>
-                    {c.healthy ? 'Healthy' : 'Unhealthy'}
-                  </td>
-                  <td>{c.statusCode ?? '—'}</td>
-                  <td>{c.responseTimeMs} ms</td>
-                  <td>{c.error}</td>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  {header('Checked at', 'checkedAt')}
+                  {/* In the history modal the URL is already in the title, so the column is left out. */}
+                  {!urlId && header('URL', 'url')}
+                  {header('Result', 'healthy')}
+                  {header('Code', 'statusCode')}
+                  {header('Response time', 'responseTimeMs')}
+                  <PlainHeader label="Error" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {data.rows.map((c, i) => (
+                  <tr key={`${c.urlId}-${c.checkedAt}-${i}`}>
+                    <td>
+                      <div className="resizable-row">{new Date(c.checkedAt).toLocaleString()}</div>
+                    </td>
+                    {!urlId && (
+                      <td>
+                        {c.url}
+                        {c.urlRemoved && <span className="tag">removed</span>}
+                      </td>
+                    )}
+                    <td>
+                      <span className={`dot ${c.healthy ? 'healthy' : 'unhealthy'}`}></span>
+                      {c.healthy ? 'Healthy' : 'Unhealthy'}
+                    </td>
+                    <td>{c.statusCode ?? '—'}</td>
+                    <td>{c.responseTimeMs} ms</td>
+                    <td className="error-cell" title={c.error ?? ''}>
+                      {c.error}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <Pager
             total={data.total}
             page={page}
