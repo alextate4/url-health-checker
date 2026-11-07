@@ -273,3 +273,35 @@ format sort in time order.
 
 **Why we use it:** SQLite has no real date type. Plain text with one fixed format is the simplest
 way to store times and filter them.
+
+---
+
+## xUnit tests: [Fact] and [Theory]
+
+**What it is:** xUnit runs test methods for C#. A method with `[Fact]` is one test. A method with
+`[Theory]` runs one time for each `[InlineData(...)]` line. Each line gives the method different
+inputs. `Assert.Equal(expected, actual)` stops the test with a failure if the two values differ.
+`dotnet test` builds the code and runs every test.
+
+**JavaScript comparison:** `[Fact]` is like `test("name", () => { ... })` in Jest or Vitest.
+`[Theory]` with `[InlineData]` is like `test.each([[200, true], [404, false]])`. `Assert.Equal` is
+like `expect(actual).toBe(expected)`.
+
+**Why we use it:** It is the standard test tool in .NET. It needs only three packages and no extra
+setup.
+
+---
+
+## A fake HttpMessageHandler
+
+**What it is:** `HttpClient` does not talk to the network itself. It gives each request to a
+"handler". The real handler sends the request over the network. In a test, we give `HttpClient` a
+fake handler. The fake handler does not use the network. It returns the answer that the test
+chooses: a status code, a delay, or an error.
+
+**JavaScript comparison:** It is like replacing `fetch` in a test with
+`vi.fn(() => Promise.resolve(new Response(null, { status: 404 })))`. The code under test still
+calls the same function. It does not know the answer is fake.
+
+**Why we use it:** The tests do not depend on real websites, so they give the same result every
+time. We can also make a timeout or a DNS failure happen on demand.

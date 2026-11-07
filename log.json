@@ -544,6 +544,41 @@
         "rejected": "Averaging every check, and averaging only healthy checks. This was not in the orchestrator steer."
       },
       "status": "accepted"
+    },
+    {
+      "id": "D-020",
+      "date": "2026-11-07",
+      "area": "testing",
+      "title": "Core tests: xUnit with a fake HttpMessageHandler and temp SQLite files",
+      "decision": "One test project (tests/HealthMonitor.Tests) with exactly three packages: xunit 2.9.3, xunit.runner.visualstudio 4.0.1, Microsoft.NET.Test.Sdk 18.11.0. UrlChecker is tested with a hand-written fake HttpMessageHandler (no network). Database is tested against a new temp SQLite file per test. 12 tests: status classification incl. the 399/400 boundary, measured response time, unreachable, timeout (CHK-02..04); save + read back after a new Database object (HIST-01/02); window read-back (HIST-03); uptime/average summary (DASH-03). Each test was shown to fail by breaking the code it guards (<= 399 -> < 399; window filter disabled).",
+      "alternatives": [
+        {
+          "option": "Moq or NSubstitute for the HTTP layer",
+          "whyNot": "An extra package to explain; a 5-line fake handler does the same."
+        },
+        {
+          "option": "In-memory SQLite (Data Source=:memory:)",
+          "whyNot": "Each new connection gets an empty DB, so the restart test could not reuse it; a temp file mirrors the real app."
+        },
+        {
+          "option": "WebApplicationFactory end-to-end API tests",
+          "whyNot": "Needs Microsoft.AspNetCore.Mvc.Testing and starts the background scheduler; the core logic is already covered by calling the classes directly."
+        },
+        {
+          "option": "Tests against real websites",
+          "whyNot": "Slow and flaky; a site being down would fail the build for the wrong reason."
+        }
+      ],
+      "rationale": "Smallest setup that covers the core requirements and can fail for a real reason (CLAUDE.md section 5).",
+      "tradeoffs": "The HTTP endpoints, the scheduler loop, and the React UI have no automated tests; they were checked by running the app. Edge cases have no tests by design (D-009).",
+      "plain": "We test the two most important parts. One part checks a web address. The other part saves and reads results. A fake server gives fixed answers, so the tests do not need the internet. Each test uses its own new database file.",
+      "ai": {
+        "suggestedBy": "Claude",
+        "accepted": "Owner approved the three packages and building the tests inline in the session (no planner run).",
+        "changed": null,
+        "rejected": null
+      },
+      "status": "accepted"
     }
   ],
   "edgeCases": [
@@ -744,6 +779,10 @@
     {
       "date": "2026-11-07",
       "note": "Claude generated the Phase 2 window code from the plan (D-018, D-019). It built and passed the probe checks on the first run, so there is no bad suggestion to report. The plan warned about three pitfalls before the code was written: the DateTime-versus-text cutoff, the SQLite Int64 mapping (flat StatsRow and CheckRow classes), and a state name that hides the browser's window. I followed those warnings and did not test the unsafe versions. Read Database.GetWindowSummaryAsync first: it holds the aggregate, the 30-check strip query, and the cutoff handling."
+    },
+    {
+      "date": "2026-11-07",
+      "note": "Phase 2 task 2 (tests) was built inline by Claude in the main session instead of a planner + executor run, to save about 10 minutes. To show the tests are real, Claude broke the code on purpose twice (healthy rule <= 399 -> < 399; window filter returning everything) and saw exactly the guarding test fail each time, then reverted. All 12 passed on the first run, so no generated test needed a fix."
     }
   ]
 }
