@@ -319,6 +319,33 @@
         "rejected": null
       },
       "status": "accepted"
+    },
+    {
+      "id": "D-013",
+      "date": "2026-11-07",
+      "area": "process",
+      "title": "Turn off GSD UI safety gate; vertical MVP roadmap approved",
+      "decision": "Approved a 5-phase vertical-MVP roadmap (3 core phases, 2 stretch). Turned off workflow.ui_safety_gate so UI phases do not need a separate design spec before planning.",
+      "alternatives": [
+        {
+          "option": "Keep the gate on (UI-SPEC for Phases 1-4)",
+          "whyNot": "Four extra design steps; the brief says a working app with a clear README beats a pretty UI."
+        },
+        {
+          "option": "Horizontal layers (DB, then API, then UI)",
+          "whyNot": "Nothing works end to end until the end; risky under a 3-hour cap."
+        }
+      ],
+      "rationale": "Each phase ends with a working app. The README lands in Phase 3, so the submission is complete even if stretch phases are cut.",
+      "tradeoffs": "No up-front UI design contract; layout decisions are made during planning, with plain CSS.",
+      "plain": "Each step gives us an app that works. We skip the extra design step because the task does not ask for a pretty screen.",
+      "ai": {
+        "suggestedBy": "Claude (roadmapper agent flagged the gate; Claude recommended turning it off)",
+        "accepted": "all",
+        "changed": null,
+        "rejected": null
+      },
+      "status": "accepted"
     }
   ],
   "edgeCases": [

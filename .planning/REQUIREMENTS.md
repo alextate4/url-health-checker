@@ -99,12 +99,40 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| URL-01 | Phase 3 | Pending |
+| URL-02 | Phase 3 | Pending |
+| URL-03 | Phase 3 | Pending |
+| URL-04 | Phase 1 | Pending |
+| CHK-01 | Phase 1 | Pending |
+| CHK-02 | Phase 1 | Pending |
+| CHK-03 | Phase 1 | Pending |
+| CHK-04 | Phase 1 | Pending |
+| CHK-05 | Phase 3 | Pending |
+| HIST-01 | Phase 1 | Pending |
+| HIST-02 | Phase 1 | Pending |
+| HIST-03 | Phase 2 | Pending |
+| DASH-01 | Phase 1 | Pending |
+| DASH-02 | Phase 1 | Pending |
+| DASH-03 | Phase 2 | Pending |
+| DASH-04 | Phase 2 | Pending |
+| DASH-05 | Phase 2 | Pending |
+| DASH-06 | Phase 2 | Pending |
+| CONF-01 | Phase 3 | Pending |
+| CONF-02 | Phase 3 | Pending |
+| DLVR-01 | Phase 1 | Pending |
+| DLVR-02 | Phase 2 | Pending |
+| DLVR-03 | Phase 3 | Pending |
+| EXTRA-01 | Phase 4 | Pending |
+| EXTRA-02 | Phase 4 | Pending |
+| EXTRA-03 | Phase 4 | Pending |
+| EXTRA-04 | Phase 4 | Pending |
+| EDGE-01 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 28 total
-- Mapped to phases: 0
-- Unmapped: 28 ⚠️
+- Mapped to phases: 28
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-11-07*
-*Last updated: 2026-11-07 after initial definition*
+*Last updated: 2026-11-07 after roadmap creation*
