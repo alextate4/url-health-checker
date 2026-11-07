@@ -5,6 +5,8 @@
   --brand-dark: #115e59;
   --header-bg: #dcfce7;
   --header-border: #a7d8b5;
+  --table-head-bg: #dbeafe;
+  --table-head-border: #b6cdea;
   --row-alt: #f6fbf7;
   --line: #d5dae0;
 }
@@ -35,8 +37,8 @@ td {
 }
 
 th {
-  background: var(--header-bg);
-  border-color: var(--header-border);
+  background: var(--table-head-bg);
+  border-color: var(--table-head-border);
   color: var(--brand-dark);
 }
 
