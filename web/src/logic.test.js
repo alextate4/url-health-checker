@@ -1,7 +1,7 @@
 // Run with: npm --prefix web test   (Node's built-in runner; no packages)
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { nextSort, sortArrow, pageCount, rowStatus, formatPercent, formatMs, checkTooltip } from './logic.js'
+import { nextSort, sortArrow, pageCount, rowStatus, formatPercent, formatMs, checkTooltip, shouldPoll } from './logic.js'
 
 test('clicking the sorted column flips its direction, both ways', () => {
   assert.deepEqual(nextSort({ key: 'url', dir: 'asc' }, 'url'), { key: 'url', dir: 'desc' })
@@ -43,4 +43,14 @@ test('a real 0 shows as 0, and only a missing value shows a dash', () => {
 test('a check with no response says so in its tooltip', () => {
   const text = checkTooltip({ healthy: false, statusCode: null, responseTimeMs: 12, checkedAt: '2026-11-07T18:00:00Z' })
   assert.match(text, /^Unhealthy · no response · 12 ms · /)
+})
+
+test('polling stops when auto-refresh is off or every URL is paused, and runs otherwise', () => {
+  const paused = { paused: true }
+  const active = { paused: false }
+  assert.equal(shouldPoll(true, [active, paused]), true)
+  assert.equal(shouldPoll(true, [paused, paused]), false)
+  assert.equal(shouldPoll(false, [active]), false)
+  assert.equal(shouldPoll(true, null), true) // before the first load
+  assert.equal(shouldPoll(true, []), true) // no URLs yet: keep looking for new ones
 })

@@ -419,3 +419,17 @@ button.icon:disabled {
   opacity: 0.4;
   cursor: wait;
 }
+
+.auto-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  color: var(--brand-dark);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.window-picker .hint {
+  font-size: 13px;
+}

@@ -45,3 +45,12 @@ export function checkTooltip(check) {
     new Date(check.checkedAt).toLocaleString(),
   ].join(' · ')
 }
+
+// Whether the dashboard should keep re-reading every 5 s. Off when the user turned auto-refresh off,
+// or when every URL on screen is paused (nothing new can appear). Before the first load (rows null)
+// it polls, so the page fills in. Playing a URL reloads at once and turns polling back on.
+export function shouldPoll(autoRefresh, rows) {
+  if (!autoRefresh) return false
+  if (!rows || rows.length === 0) return true
+  return !rows.every((row) => row.paused)
+}

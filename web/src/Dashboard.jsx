@@ -4,6 +4,7 @@ import AddUrlForm from './AddUrlForm.jsx'
 import RetentionSetting from './RetentionSetting.jsx'
 import { SortHeader, PlainHeader, Pager } from './TableControls.jsx'
 import { query } from './api.js'
+import { shouldPoll } from './logic.js'
 import { RefreshIcon } from './icons.jsx'
 
 const WINDOWS = ['1h', '24h', '7d']
@@ -21,6 +22,9 @@ export default function Dashboard({ onError }) {
   // Bumped after an add, re-time, or remove, so the list reloads at once instead of on the next poll.
   const [version, setVersion] = useState(0)
   const refresh = () => setVersion((v) => v + 1)
+  // Auto-refresh only re-reads results; it never starts checks. Pausing URLs is what stops checks.
+  const [autoRefresh, setAutoRefresh] = useState(true)
+  const polling = shouldPoll(autoRefresh, data?.rows)
 
   useEffect(() => {
     // Set on cleanup, so a slow reply for old settings cannot overwrite the new data.
@@ -44,13 +48,13 @@ export default function Dashboard({ onError }) {
     }
 
     load()
-    const timer = setInterval(load, POLL_MS)
+    const timer = polling ? setInterval(load, POLL_MS) : null
 
     return () => {
       ignore = true
       clearInterval(timer)
     }
-  }, [timeWindow, sort, page, pageSize, version, onError])
+  }, [timeWindow, sort, page, pageSize, version, polling, onError])
 
   // A new sort or page size starts again at page 1, so the user is never left on an empty page.
   function changeSort(next) {
@@ -77,10 +81,15 @@ export default function Dashboard({ onError }) {
               {w}
             </button>
           ))}
-          {/* The table already reloads every 5 s; this is for "show me the latest right now". */}
+          {/* The table reloads every 5 s while auto-refresh is on; this is "show me the latest now". */}
           <button type="button" className="secondary refresh" onClick={refresh}>
             <RefreshIcon /> Refresh
           </button>
+          <label className="auto-refresh">
+            <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />
+            Auto-refresh
+          </label>
+          {autoRefresh && !polling && <span className="hint">(stopped: every URL is paused)</span>}
         </div>
         <RetentionSetting onError={onError} />
       </div>
