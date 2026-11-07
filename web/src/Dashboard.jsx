@@ -4,7 +4,7 @@ import AddUrlForm from './AddUrlForm.jsx'
 import RetentionSetting from './RetentionSetting.jsx'
 import CheckIntervalSetting from './CheckIntervalSetting.jsx'
 import { SortHeader, PlainHeader, Pager } from './TableControls.jsx'
-import { query } from './api.js'
+import { getSettings, query } from './api.js'
 import { RefreshIcon } from './icons.jsx'
 import { checkSecondsOrDefault, DEFAULT_CHECK_SECONDS } from './logic.js'
 
@@ -26,7 +26,25 @@ export default function Dashboard({ onError }) {
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [checkSeconds, setCheckSeconds] = useState(DEFAULT_CHECK_SECONDS)
   // Normalized again here, so the timer can never get NaN, 0, or anything under 10 s.
-  const onIntervalLoaded = useCallback((seconds) => setCheckSeconds(checkSecondsOrDefault(seconds)), [])
+  const onIntervalSaved = useCallback((seconds) => setCheckSeconds(checkSecondsOrDefault(seconds)), [])
+  // Both settings come from ONE request, made here, instead of one request per settings form.
+  const [settings, setSettings] = useState(null)
+
+  useEffect(() => {
+    let ignore = false
+    getSettings()
+      .then((loaded) => {
+        if (ignore) return
+        setSettings(loaded)
+        setCheckSeconds(checkSecondsOrDefault(loaded.checkIntervalSeconds))
+      })
+      .catch((err) => {
+        if (!ignore) onError(`Could not load settings: ${err.message}`)
+      })
+    return () => {
+      ignore = true
+    }
+  }, [onError])
   const refreshMs = checkSecondsOrDefault(checkSeconds) * 1000
 
   useEffect(() => {
@@ -94,8 +112,12 @@ export default function Dashboard({ onError }) {
           </label>
         </div>
         <div className="settings">
-          <CheckIntervalSetting onLoaded={onIntervalLoaded} onError={onError} />
-          <RetentionSetting onError={onError} />
+          <CheckIntervalSetting
+            loaded={settings?.checkIntervalSeconds}
+            onSaved={onIntervalSaved}
+            onError={onError}
+          />
+          <RetentionSetting loaded={settings?.retentionDays} onError={onError} />
         </div>
       </div>
       {data === null ? (

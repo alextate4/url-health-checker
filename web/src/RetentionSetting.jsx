@@ -1,22 +1,20 @@
 import { useEffect, useState } from 'react'
-import { getRetentionDays, saveRetentionDays } from './api.js'
+import { saveRetentionDays } from './api.js'
 import { retentionDaysOrDefault, DEFAULT_RETENTION_DAYS, MIN_RETENTION_DAYS } from './logic.js'
 
 // CONF-01: one global setting. Old results are archived, not deleted, so the label says so (D-023).
-export default function RetentionSetting({ onError }) {
+// `loaded` is undefined until the Dashboard's one settings request answers.
+export default function RetentionSetting({ loaded, onError }) {
   // Starts at the default, so the box is never empty while the server answers (or if it cannot).
   const [days, setDays] = useState(DEFAULT_RETENTION_DAYS)
   const [saved, setSaved] = useState(null)
 
   useEffect(() => {
-    getRetentionDays()
-      .then((loaded) => {
-        // A stored 0 or a missing value shows the default; Save then fixes the server too.
-        setDays(retentionDaysOrDefault(loaded))
-        setSaved(loaded)
-      })
-      .catch((err) => onError(`Could not load retention: ${err.message}`))
-  }, [onError])
+    if (loaded === undefined) return
+    // A stored 0 or a missing value shows the default; Save then fixes the server too.
+    setDays(retentionDaysOrDefault(loaded))
+    setSaved(loaded)
+  }, [loaded])
 
   function handleSubmit(event) {
     event.preventDefault()

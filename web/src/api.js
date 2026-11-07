@@ -27,18 +27,11 @@ export function removeUrl(id) {
   return send('DELETE', `/api/urls/${id}`)
 }
 
-async function getSettings() {
+// One call for both settings; the Dashboard loads it once and hands each value to its form.
+export async function getSettings() {
   const response = await fetch('/api/settings')
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
   return response.json()
-}
-
-export async function getRetentionDays() {
-  return (await getSettings()).retentionDays
-}
-
-export async function getCheckIntervalSeconds() {
-  return (await getSettings()).checkIntervalSeconds
 }
 
 export function saveCheckIntervalSeconds(checkIntervalSeconds) {
