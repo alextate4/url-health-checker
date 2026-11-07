@@ -120,3 +120,102 @@ it. A big real system would use Postgres instead.
 string and get plain objects back.
 
 **Why we use it:** We can read every query. We can explain every query to the panel.
+
+---
+
+## The .csproj and the solution file
+
+**What it is:** A `.csproj` file describes one C# project. It lists the .NET version and the
+packages. A solution file (`HealthMonitor.slnx`) lists the projects that belong together.
+
+**JavaScript comparison:** A `.csproj` is like `package.json`. A solution file is like an npm
+workspace root. It groups several packages in one repo.
+
+**Why we use it:** `dotnet build` at the repo root reads the solution file. It builds every
+project. Later, the test project joins the same solution.
+
+---
+
+## appsettings.json
+
+**What it is:** A JSON file with settings for the server. The server reads it when it starts.
+
+**JavaScript comparison:** It is like a `config.json` file, or a `.env` file, that you read at
+startup.
+
+**Why we use it:** The database path, the check tick, and the request timeout live here. You
+change a number in the file. You do not change the code.
+
+---
+
+## wwwroot and static files
+
+**What it is:** `wwwroot` is a folder. The server sends the files in it to the browser as they
+are. These are called static files.
+
+**JavaScript comparison:** It is like `express.static('public')`.
+
+**Why we use it:** Vite builds the React app into `server/wwwroot`. The same server then sends the
+page and answers the API. One command runs both.
+
+---
+
+## MSBuild targets
+
+**What it is:** MSBuild is the tool that builds C# projects. A target is a named step. You can
+tell it to run before or after another step.
+
+**JavaScript comparison:** It is like an npm `prebuild` script. It runs before `build`.
+
+**Why we use it:** Our `BuildWebUi` target runs `npm install` and `npm run build` before the C#
+build. A fresh clone then works with one `dotnet run`.
+
+---
+
+## C# records
+
+**What it is:** A record is a small type that only holds data. You list its fields in one line.
+After you make one, you cannot change its fields.
+
+**JavaScript comparison:** It is like a plain object with a fixed shape. It is also like
+`Object.freeze({ id, url })`, but the shape is checked when you build.
+
+**Why we use it:** `CheckResult` and `UrlStatus` carry data from one place to another. Records
+make that data short to write and safe to pass around.
+
+---
+
+## CancellationToken
+
+**What it is:** A token that says "please stop". Long tasks check it. When someone cancels it,
+they stop.
+
+**JavaScript comparison:** It is like `AbortController` and `AbortSignal` with `fetch`.
+
+**Why we use it:** When the app shuts down, the token is cancelled. A check that is in flight
+stops. We do not save a false "unhealthy" result for it.
+
+---
+
+## Stopwatch
+
+**What it is:** A clock that measures how long something takes.
+
+**JavaScript comparison:** It is like calling `performance.now()` before and after a task, then
+subtracting.
+
+**Why we use it:** We time each check from the moment we send the request until the headers come
+back. That number is the response time.
+
+---
+
+## HttpCompletionOption.ResponseHeadersRead
+
+**What it is:** A setting for an HTTP request. It tells .NET to return as soon as the headers
+arrive. The page body is not downloaded.
+
+**JavaScript comparison:** It is like reading `response.status` from `fetch` and never calling
+`.text()`.
+
+**Why we use it:** We only need the status code and the time. Some pages are very big. This
+setting keeps each check fast and small.
