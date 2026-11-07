@@ -707,6 +707,41 @@
         "rejected": null
       },
       "status": "accepted"
+    },
+    {
+      "id": "D-025",
+      "date": "2026-11-07",
+      "area": "frontend",
+      "title": "Row actions: play/pause, trash icon, per-URL history modal; inline SVG icons and native <dialog>",
+      "decision": "Every column gets a play/pause toggle (PATCH {paused}); urls.paused_at marks a paused URL, the scheduler skips it, and the row says 'Paused' (EXTRA-01). No separate 'stop': the trash can (soft delete, D-023) already stops monitoring for good. The Recent checks cell gets a history button that opens a native <dialog> with every check for that URL, live and archived, reusing the All-checks table with ?urlId= (EXTRA-03). Icons (plus, trash, play, pause, history) are hand-written inline SVG. Sort arrows always show (↕ when unsorted). The row-height handle sits in the Status column; the URL input is larger.",
+      "alternatives": [
+        {
+          "option": "Play / pause / stop with 'stop' as a third state",
+          "whyNot": "Stop would duplicate either pause or the trash can; owner chose play + pause only."
+        },
+        {
+          "option": "An icon package (lucide-react, react-icons)",
+          "whyNot": "A new dependency for five icons; inline SVG is a few lines each."
+        },
+        {
+          "option": "A custom modal with a fixed overlay div",
+          "whyNot": "<dialog>.showModal() gives Escape to close, a backdrop, and focus trapping without extra code."
+        },
+        {
+          "option": "History modal limited to the selected window",
+          "whyNot": "Owner wanted the entire history; the window already drives the stats and strip."
+        }
+      ],
+      "rationale": "Owner-requested UI refinements, built with no new packages and reusing existing endpoints and components.",
+      "tradeoffs": "Paused URLs still count in the dashboard's sort and paging. The modal is not polled; it has a Refresh button.",
+      "plain": "Each row now has a play and pause button, a trash can, and a clock button. The clock button opens a window with every check for that web address.",
+      "ai": {
+        "suggestedBy": "Owner listed the UI changes; Claude asked what 'stop' should mean and what the modal should show",
+        "accepted": "Play + pause only; modal shows the URL's full history, paged",
+        "changed": null,
+        "rejected": "stop button"
+      },
+      "status": "accepted"
     }
   ],
   "edgeCases": [
@@ -994,6 +1029,10 @@
     {
       "date": "2026-11-07",
       "note": "Task 4 was re-scoped by the owner (soft delete, no hard deletes, sorting, paging, colors, resizable table). Claude pointed out that 'never hard delete' conflicts with the brief's retention wording before building, and the owner picked archiving. Claude's first edit script broke on C# raw strings (\"\"\") inside a Python heredoc and left Program.cs half-updated; the build caught it, and Claude redid Database.cs from snippet files. API checks ran against a copy of the DB on port 5081 so the owner's running instance and data were not touched."
+    },
+    {
+      "date": "2026-11-07",
+      "note": "While checking pause/resume, Claude's first test sent the Content-Type header unquoted through a shell variable, so every PATCH looked like a 400; then a 404 turned out to be correct because the owner had removed URL 1 in their own instance. Both were test mistakes, not app bugs; the re-run on a live URL showed no checks while paused and a new check after resume."
     }
   ]
 }

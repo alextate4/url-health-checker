@@ -52,9 +52,9 @@ core categories first; **EXTRA** and **EDGE** are built last and cut from the bo
 
 ### Extras (stretch — build in this order, cut from the bottom)
 
-- [ ] **EXTRA-01**: User can pause and resume checking a URL without deleting it or its history
+- [x] **EXTRA-01**: User can pause and resume checking a URL without deleting it or its history
 - [ ] **EXTRA-02**: User can trigger an immediate "check now" for a URL
-- [ ] **EXTRA-03**: User can open a URL detail view showing a table of its individual checks (time, status, ms, error)
+- [x] **EXTRA-03**: User can open a URL detail view showing a table of its individual checks (time, status, ms, error)
 - [ ] **EXTRA-04**: Each dashboard row shows an inline SVG sparkline of response time over the selected window
 
 ### Edge Cases (stretch — only if time remains)
@@ -122,9 +122,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DLVR-01 | Phase 1 | Complete |
 | DLVR-02 | Phase 2 | Complete |
 | DLVR-03 | Phase 2 | Pending |
-| EXTRA-01 | Stretch (quick) | Pending |
+| EXTRA-01 | Stretch (quick) — Complete | Pending |
 | EXTRA-02 | Stretch (quick) | Pending |
-| EXTRA-03 | Stretch (quick) | Pending |
+| EXTRA-03 | Stretch (quick) — Complete | Pending |
 | EXTRA-04 | Stretch (quick) | Pending |
 | EDGE-01 | Stretch (quick) | Pending |
 

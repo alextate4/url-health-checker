@@ -4,10 +4,10 @@ current_phase: 1
 current_phase_name: Walking Skeleton
 status: executing
 stopped_at: Phase 2 task 4 done; next is task 5 (README)
-last_updated: "2026-11-07T18:59:44.313Z"
+last_updated: "2026-11-07T19:16:33.453Z"
 last_activity: 2026-11-07
-last_activity_desc: "Phase 2 task 4: soft delete, retention archive, sorting, paging, styling"
-state_head: 2cfd1b7ca5caca9ea3e5d8ca2d8f23da69754eb0
+last_activity_desc: "UI refinements: play/pause, icons, history modal"
+state_head: 86a046c5e9170ea6b9669c52fbc85fb73cfe0d44
 progress:
   total_phases: 2
   completed_phases: 0
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-11-07)
 Phase: 2 of 2 (Features & README) — Phase 1 done via quick task 261107-gje
 Plan: run as /gsd-quick tasks (D-015)
 Status: Ready for Phase 2
-Last activity: 2026-11-07 - Phase 2 task 4: soft delete, retention archive, sorting, paging, styling
+Last activity: 2026-11-07 - UI refinements: play/pause, icons, history modal (EXTRA-01, EXTRA-03 done)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -89,6 +89,7 @@ None yet.
 | 4 | Phase 2 task 2: core xUnit tests (12) for checker, saving, restart, window read-back, summary (inline) | 2026-11-07 | 4b78962 | — |
 | 5 | Phase 2 task 3: add/re-time/remove URLs (API + UI) and capped concurrent checks (inline) | 2026-11-07 | d3c6512 | — |
 | 6 | Phase 2 task 4 (re-scoped): soft delete, retention archive, All-checks page, sorting + 10/50/100 paging, colors, resizable table (inline) | 2026-11-07 | 2cfd1b7 | — |
+| 7 | UI refinements: play/pause (EXTRA-01), trash + plus icons, full-history modal (EXTRA-03), visible sort arrows, larger input (inline) | 2026-11-07 | 86a046c | — |
 
 ## Deferred Items
 
