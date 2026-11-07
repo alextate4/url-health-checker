@@ -45,27 +45,3 @@ export function checkTooltip(check) {
     new Date(check.checkedAt).toLocaleString(),
   ].join(' · ')
 }
-
-// Turns response times into SVG polyline points ("x,y x,y ..."), oldest on the left.
-// The fastest value sits at the bottom and the slowest at the top. Checks with no response
-// (null status) are skipped, because their time is a timeout or DNS failure, not a speed (D-019).
-// Returns '' when there are fewer than two points, since one point cannot draw a line.
-export function sparklinePoints(checks, width, height) {
-  const values = checks.filter((c) => c.statusCode !== null).map((c) => c.responseTimeMs)
-  if (values.length < 2) return ''
-  const min = Math.min(...values)
-  const max = Math.max(...values)
-  const range = max - min || 1 // all equal → a flat line in the middle instead of dividing by 0
-  const step = width / (values.length - 1)
-  return values
-    .map((v, i) => {
-      const x = i * step
-      const y = max === min ? height / 2 : height - ((v - min) / range) * height
-      return `${round(x)},${round(y)}`
-    })
-    .join(' ')
-}
-
-function round(n) {
-  return Math.round(n * 10) / 10
-}

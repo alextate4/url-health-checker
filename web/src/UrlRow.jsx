@@ -2,19 +2,7 @@ import { useState } from 'react'
 import { changeInterval, removeUrl, setPaused, checkNow } from './api.js'
 import { TrashIcon, PlayIcon, PauseIcon, HistoryIcon, CheckNowIcon } from './icons.jsx'
 import HistoryModal from './HistoryModal.jsx'
-import { rowStatus, formatPercent, formatMs, checkTooltip, sparklinePoints } from './logic.js'
-
-// Inline SVG line of response time over the recent checks in the window (EXTRA-04).
-// Same width as the strip below it, so each point lines up roughly with its box.
-function Sparkline({ checks }) {
-  const points = sparklinePoints(checks, 103, 18)
-  if (!points) return null
-  return (
-    <svg className="sparkline" width="103" height="20" viewBox="0 -1 103 20" role="img" aria-label="Response time trend">
-      <polyline points={points} fill="none" stroke="currentColor" strokeWidth="1.5" />
-    </svg>
-  )
-}
+import { rowStatus, formatPercent, formatMs, checkTooltip } from './logic.js'
 
 // Edits the interval in place. The scheduler picks up the new value on its next tick (URL-03).
 function IntervalEditor({ url, onChanged, onError }) {
@@ -102,13 +90,10 @@ export default function UrlRow({ url, onChanged, onError }) {
           {summary.recent.length === 0 ? (
             '—'
           ) : (
-            <div className="trend">
-              <Sparkline checks={summary.recent} />
-              <div className="strip">
-                {summary.recent.map((c) => (
-                  <span key={c.checkedAt} className={`box ${c.healthy ? 'healthy' : 'unhealthy'}`} title={checkTooltip(c)}></span>
-                ))}
-              </div>
+            <div className="strip">
+              {summary.recent.map((c) => (
+                <span key={c.checkedAt} className={`box ${c.healthy ? 'healthy' : 'unhealthy'}`} title={checkTooltip(c)}></span>
+              ))}
             </div>
           )}
           <button
