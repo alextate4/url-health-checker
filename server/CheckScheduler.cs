@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 
-// One background loop checks every URL whose interval has passed.
-// Per-URL intervals fall out of this: a short tick plus an "is it due?" test for each URL.
+// One background loop checks every URL whose check interval has passed.
+// A short tick plus an "is it due?" test per URL, against one global interval (D-033).
 public class CheckScheduler : BackgroundService
 {
     // Caps how many checks run at the same time (CHK-05), so 100 URLs do not open 100 connections at once.
@@ -47,8 +47,10 @@ public class CheckScheduler : BackgroundService
         // Without this catch, one unhandled error would stop the whole app (.NET 8+ default).
         try
         {
+            // One interval for every URL (D-033), read each pass so a change in the UI applies on the next tick.
+            var intervalSeconds = await _database.GetCheckIntervalSecondsAsync();
             var statuses = await _database.GetUrlStatusesAsync();
-            foreach (var status in statuses.Where(IsDue))
+            foreach (var status in statuses.Where(s => IsDue(s, intervalSeconds)))
             {
                 if (_inFlight.TryAdd(status.Id, true))
                 {
@@ -100,18 +102,14 @@ public class CheckScheduler : BackgroundService
         }
     }
 
-    // Due = not paused, and never checked, or its interval has passed since the newest check.
-    private static bool IsDue(UrlStatus status)
+    // Due = never checked, or the check interval has passed since its newest check.
+    private static bool IsDue(UrlStatus status, int intervalSeconds)
     {
-        if (status.Paused)
-        {
-            return false;
-        }
         if (status.LastCheck is null)
         {
             return true;
         }
         var lastChecked = DateTimeOffset.Parse(status.LastCheck.CheckedAt);
-        return lastChecked.AddSeconds(status.IntervalSeconds) <= DateTimeOffset.UtcNow;
+        return lastChecked.AddSeconds(intervalSeconds) <= DateTimeOffset.UtcNow;
     }
 }

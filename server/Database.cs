@@ -5,14 +5,13 @@ using Microsoft.Data.Sqlite;
 public record SavedCheck(string CheckedAt, long? StatusCode, long ResponseTimeMs, bool Healthy, string? Error);
 
 // One row of the dashboard: a URL plus its newest check (null before the first check).
-// Paused means the URL stays on the dashboard with its history, but the scheduler skips it (EXTRA-01).
-public record UrlStatus(long Id, string Url, long IntervalSeconds, bool Paused, SavedCheck? LastCheck);
+public record UrlStatus(long Id, string Url, SavedCheck? LastCheck);
 
 // Numbers for one URL over the chosen window. Percent and average are null when there is nothing to count.
 public record WindowSummary(long CheckCount, double? UptimePercent, double? AvgResponseTimeMs, List<SavedCheck> Recent);
 
 // What /api/urls returns for each URL: the Phase 1 fields plus the window summary.
-public record DashboardRow(long Id, string Url, long IntervalSeconds, bool Paused, SavedCheck? LastCheck, WindowSummary Summary);
+public record DashboardRow(long Id, string Url, SavedCheck? LastCheck, WindowSummary Summary);
 
 // One row of the All-checks page: live results and archived ones together, so no history is hidden.
 public record HistoryRow(long UrlId, string Url, bool UrlRemoved, string CheckedAt, long? StatusCode,
@@ -28,10 +27,11 @@ public class Database
         CREATE TABLE IF NOT EXISTS urls (
             id INTEGER PRIMARY KEY,
             url TEXT NOT NULL,
-            interval_seconds INTEGER NOT NULL,
+            -- No longer read: one global check interval replaced per-URL intervals (D-033). Kept, with 0
+            -- written on insert, so database files made before that change still accept new URLs.
+            interval_seconds INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL,
-            deleted_at TEXT NULL,
-            paused_at TEXT NULL
+            deleted_at TEXT NULL
         );
 
         CREATE TABLE IF NOT EXISTS check_results (
@@ -64,16 +64,18 @@ public class Database
             value TEXT NOT NULL
         );
         INSERT OR IGNORE INTO settings (key, value) VALUES ('retention_days', '30');
+        -- One check interval for every URL; the dashboard also auto-refreshes at this rate (D-033).
+        INSERT OR IGNORE INTO settings (key, value) VALUES ('check_interval_seconds', '30');
         """;
 
     // Seeds are chosen so the first run shows every state: healthy, 404 with a code,
     // and a DNS failure with an error reason. ".invalid" can never resolve (RFC 2606).
-    private static readonly (string Url, int IntervalSeconds)[] Seeds =
+    private static readonly string[] Seeds =
     [
-        ("https://example.com", 30),
-        ("https://github.com", 60),
-        ("https://github.com/this-page-should-not-exist-rosnet", 30),
-        ("https://unreachable.invalid", 30),
+        "https://example.com",
+        "https://github.com",
+        "https://github.com/this-page-should-not-exist-rosnet",
+        "https://unreachable.invalid",
     ];
 
     private readonly string _connectionString;
@@ -88,9 +90,9 @@ public class Database
         using var connection = new SqliteConnection(_connectionString);
         await connection.ExecuteAsync(SchemaScript);
 
-        // A database made before soft delete or pause lacks these columns. CREATE TABLE IF NOT EXISTS
+        // A database made before soft delete lacks this column. CREATE TABLE IF NOT EXISTS
         // does not change an existing table, so add each missing column once here (no migrations, D-005).
-        foreach (var column in new[] { "deleted_at", "paused_at" })
+        foreach (var column in new[] { "deleted_at" })
         {
             var exists = await connection.ExecuteScalarAsync<long>(
                 "SELECT COUNT(*) FROM pragma_table_info('urls') WHERE name = @Column", new { Column = column });
@@ -110,8 +112,8 @@ public class Database
         foreach (var seed in Seeds)
         {
             await connection.ExecuteAsync(
-                "INSERT INTO urls (url, interval_seconds, created_at) VALUES (@Url, @IntervalSeconds, @CreatedAt)",
-                new { seed.Url, seed.IntervalSeconds, CreatedAt = DateTime.UtcNow.ToString("o") });
+                "INSERT INTO urls (url, interval_seconds, created_at) VALUES (@Url, 0, @CreatedAt)",
+                new { Url = seed, CreatedAt = DateTime.UtcNow.ToString("o") });
         }
     }
 
@@ -121,8 +123,6 @@ public class Database
         const string sql = """
             SELECT u.id AS Id,
                    u.url AS Url,
-                   u.interval_seconds AS IntervalSeconds,
-                   u.paused_at AS PausedAt,
                    r.checked_at AS CheckedAt,
                    r.status_code AS StatusCode,
                    r.response_time_ms AS ResponseTimeMs,
@@ -144,8 +144,6 @@ public class Database
         return rows.Select(row => new UrlStatus(
             row.Id,
             row.Url,
-            row.IntervalSeconds,
-            row.PausedAt is not null,
             row.CheckedAt is null
                 ? null
                 : new SavedCheck(row.CheckedAt, row.StatusCode, row.ResponseTimeMs ?? 0, row.Healthy == 1, row.Error)))
@@ -162,22 +160,10 @@ public class Database
         foreach (var status in statuses)
         {
             var summary = await GetWindowSummaryAsync(status.Id, since);
-            rows.Add(new DashboardRow(status.Id, status.Url, status.IntervalSeconds, status.Paused, status.LastCheck, summary));
+            rows.Add(new DashboardRow(status.Id, status.Url, status.LastCheck, summary));
         }
 
         return rows;
-    }
-
-    // One dashboard row, so a playing row can refresh itself on its own interval. Null if missing or removed.
-    public async Task<DashboardRow?> GetDashboardRowAsync(long id, DateTime since)
-    {
-        var status = (await GetUrlStatusesAsync()).SingleOrDefault(s => s.Id == id);
-        if (status is null)
-        {
-            return null;
-        }
-        var summary = await GetWindowSummaryAsync(id, since);
-        return new DashboardRow(status.Id, status.Url, status.IntervalSeconds, status.Paused, status.LastCheck, summary);
     }
 
     // About 15 minutes of a 30s URL: it fits in one table cell, and the payload does not grow with the window.
@@ -281,27 +267,16 @@ public class Database
     }
 
     // Returns the new id. The scheduler sees a URL with no checks as due, so it is checked on the next tick.
-    public async Task<long> AddUrlAsync(string url, int intervalSeconds)
+    public async Task<long> AddUrlAsync(string url)
     {
         const string sql = """
-            INSERT INTO urls (url, interval_seconds, created_at) VALUES (@Url, @IntervalSeconds, @CreatedAt);
+            INSERT INTO urls (url, interval_seconds, created_at) VALUES (@Url, 0, @CreatedAt);
             SELECT last_insert_rowid();
             """;
 
         using var connection = new SqliteConnection(_connectionString);
         return await connection.ExecuteScalarAsync<long>(
-            sql, new { Url = url, IntervalSeconds = intervalSeconds, CreatedAt = DateTime.UtcNow.ToString("o") });
-    }
-
-    // The scheduler reads interval_seconds on every pass, so the new value applies on the next tick (URL-03).
-    // Returns false when no URL has this id.
-    public async Task<bool> UpdateIntervalAsync(long id, int intervalSeconds)
-    {
-        using var connection = new SqliteConnection(_connectionString);
-        var changed = await connection.ExecuteAsync(
-            "UPDATE urls SET interval_seconds = @IntervalSeconds WHERE id = @Id AND deleted_at IS NULL",
-            new { Id = id, IntervalSeconds = intervalSeconds });
-        return changed > 0;
+            sql, new { Url = url, CreatedAt = DateTime.UtcNow.ToString("o") });
     }
 
     // Soft delete: the URL is only marked as removed. The scheduler and the dashboard skip it,
@@ -316,15 +291,20 @@ public class Database
         return changed > 0;
     }
 
-    // Pause keeps the row and its history; the scheduler skips it until it is resumed (EXTRA-01).
-    // Returns false when no live URL has this id.
-    public async Task<bool> SetPausedAsync(long id, bool paused)
+    // The one check interval for every URL (D-033). The scheduler reads it each tick, so a change
+    // applies on the next tick; the dashboard auto-refreshes at the same rate.
+    public async Task<int> GetCheckIntervalSecondsAsync()
     {
         using var connection = new SqliteConnection(_connectionString);
-        var changed = await connection.ExecuteAsync(
-            "UPDATE urls SET paused_at = @PausedAt WHERE id = @Id AND deleted_at IS NULL",
-            new { Id = id, PausedAt = paused ? DateTime.UtcNow.ToString("o") : null });
-        return changed > 0;
+        var value = await connection.ExecuteScalarAsync<string>("SELECT value FROM settings WHERE key = 'check_interval_seconds'");
+        return int.Parse(value!);
+    }
+
+    public async Task SetCheckIntervalSecondsAsync(int seconds)
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        await connection.ExecuteAsync(
+            "UPDATE settings SET value = @Value WHERE key = 'check_interval_seconds'", new { Value = seconds.ToString() });
     }
 
     public async Task<int> GetRetentionDaysAsync()
@@ -445,8 +425,6 @@ public class Database
     {
         public long Id { get; set; }
         public string Url { get; set; } = "";
-        public long IntervalSeconds { get; set; }
-        public string? PausedAt { get; set; }
         public string? CheckedAt { get; set; }
         public long? StatusCode { get; set; }
         public long? ResponseTimeMs { get; set; }

@@ -43,8 +43,6 @@ var dashboardSorts = new Dictionary<string, Func<DashboardRow, object?>>
 {
     ["id"] = r => r.Id,
     ["url"] = r => r.Url,
-    ["interval"] = r => r.IntervalSeconds,
-    ["paused"] = r => r.Paused,
     ["status"] = r => r.LastCheck?.Healthy,
     ["statusCode"] = r => r.LastCheck?.StatusCode,
     ["responseTimeMs"] = r => r.LastCheck?.ResponseTimeMs,
@@ -86,24 +84,29 @@ app.MapGet("/api/checks", async (string? sort, string? dir, int? page, int? page
     return Results.Ok(await db.GetAllChecksAsync(paging.Sort, paging.Descending, paging.Page, paging.PageSize, urlId));
 });
 
-app.MapGet("/api/settings", async (Database db) => Results.Ok(new { retentionDays = await db.GetRetentionDaysAsync() }));
+app.MapGet("/api/settings", async (Database db) => Results.Ok(new
+{
+    retentionDays = await db.GetRetentionDaysAsync(),
+    checkIntervalSeconds = await db.GetCheckIntervalSecondsAsync(),
+}));
 
+// Either setting can be sent alone. The check interval is the one rate for every URL (D-033),
+// so it gets the same 10 s – 1 day rule that per-URL intervals had (D-026).
 app.MapPut("/api/settings", async (SettingsChange body, Database db) =>
 {
-    await db.SetRetentionDaysAsync(body.RetentionDays);
-    return Results.NoContent();
-});
-
-// One dashboard row: a playing row reloads itself with this after each of its own checks (D-032).
-app.MapGet("/api/urls/{id}", async (long id, string? window, Database db) =>
-{
-    if (!historyWindows.TryGetValue(window ?? "1h", out var span))
+    if (body.CheckIntervalSeconds is int requested && InputRules.IntervalProblem(requested) is string problem)
     {
-        return Results.BadRequest(new { error = "window must be 1h, 24h, or 7d" });
+        return Results.BadRequest(new { error = problem.Replace("intervalSeconds", "checkIntervalSeconds") });
     }
-
-    var row = await db.GetDashboardRowAsync(id, DateTime.UtcNow - span);
-    return row is null ? Results.NotFound() : Results.Ok(row);
+    if (body.RetentionDays is int days)
+    {
+        await db.SetRetentionDaysAsync(days);
+    }
+    if (body.CheckIntervalSeconds is int seconds)
+    {
+        await db.SetCheckIntervalSecondsAsync(seconds);
+    }
+    return Results.NoContent();
 });
 
 // Full history of one URL inside the window (HIST-03). Not polled by the UI, so it is not paged.
@@ -117,10 +120,10 @@ app.MapGet("/api/urls/{id}/checks", async (long id, string? window, Database db)
     return Results.Ok(await db.GetChecksSinceAsync(id, DateTime.UtcNow - span));
 });
 
-// URL management (URL-01..03). Input rules live in InputRules.cs (EC-002, EC-003).
+// URL management (URL-01, URL-02). Input rules live in InputRules.cs (EC-002, EC-003).
 app.MapPost("/api/urls", async (NewUrl body, Database db) =>
 {
-    var problem = InputRules.UrlProblem(body.Url) ?? InputRules.IntervalProblem(body.IntervalSeconds);
+    var problem = InputRules.UrlProblem(body.Url);
     if (problem is not null)
     {
         return Results.BadRequest(new { error = problem });
@@ -131,34 +134,12 @@ app.MapPost("/api/urls", async (NewUrl body, Database db) =>
         return Results.Conflict(new { error = "this URL is already being monitored" });
     }
 
-    var id = await db.AddUrlAsync(body.Url, body.IntervalSeconds);
+    var id = await db.AddUrlAsync(body.Url);
     return Results.Created($"/api/urls/{id}", new { id });
 });
 
-// One PATCH changes either the interval or the paused state (or both); fields left out stay as they are.
-app.MapPatch("/api/urls/{id}", async (long id, UrlChange body, Database db) =>
-{
-    if (body.IntervalSeconds is null && body.Paused is null)
-    {
-        return Results.BadRequest(new { error = "send intervalSeconds, paused, or both" });
-    }
-    if (body.IntervalSeconds is int requested && InputRules.IntervalProblem(requested) is string problem)
-    {
-        return Results.BadRequest(new { error = problem });
-    }
-    if (body.IntervalSeconds is int seconds && !await db.UpdateIntervalAsync(id, seconds))
-    {
-        return Results.NotFound();
-    }
-    if (body.Paused is bool paused && !await db.SetPausedAsync(id, paused))
-    {
-        return Results.NotFound();
-    }
-    return Results.NoContent();
-});
-
 // "Check now" (EXTRA-02): one check right away, saved like any other, so it also appears in the
-// history and resets the URL's next due time. Works on a paused URL too: it is a manual request.
+// history and resets the URL's next due time. In the UI this is each row's refresh button (D-033).
 app.MapPost("/api/urls/{id}/check", async (long id, Database db, IHttpClientFactory httpClientFactory, CancellationToken token) =>
 {
     var url = await db.GetLiveUrlAsync(id);
@@ -192,9 +173,8 @@ static Paging? ReadPaging(string sort, string? dir, int? page, int? pageSize, IE
 }
 
 // The JSON bodies the UI sends. ASP.NET Core fills these from camelCase JSON automatically.
-record NewUrl(string Url, int IntervalSeconds);
-record UrlChange(int? IntervalSeconds, bool? Paused);
-record SettingsChange(int RetentionDays);
+record NewUrl(string Url);
+record SettingsChange(int? RetentionDays, int? CheckIntervalSeconds);
 record Paging(string Sort, bool Descending, int Page, int PageSize);
 
 // Kept next to ReadPaging so the message matches the rules.
