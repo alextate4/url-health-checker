@@ -102,6 +102,26 @@ public class Database
             .ToList();
     }
 
+    // Always INSERT, never UPDATE: every check is its own row, which is what builds the history.
+    public async Task InsertCheckResultAsync(long urlId, CheckResult result)
+    {
+        const string sql = """
+            INSERT INTO check_results (url_id, checked_at, status_code, response_time_ms, healthy, error)
+            VALUES (@UrlId, @CheckedAt, @StatusCode, @ResponseTimeMs, @Healthy, @Error)
+            """;
+
+        using var connection = new SqliteConnection(_connectionString);
+        await connection.ExecuteAsync(sql, new
+        {
+            UrlId = urlId,
+            CheckedAt = DateTime.UtcNow.ToString("o"),
+            result.StatusCode,
+            result.ResponseTimeMs,
+            Healthy = result.Healthy ? 1 : 0,
+            result.Error,
+        });
+    }
+
     // SQLite hands back every INTEGER as long, and Dapper cannot fill the positional records above
     // from that. So Dapper fills this plain class and we build the records by hand.
     private class StatusRow
