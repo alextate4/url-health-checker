@@ -292,6 +292,33 @@
         "rejected": null
       },
       "status": "accepted"
+    },
+    {
+      "id": "D-012",
+      "date": "2026-11-07",
+      "area": "scope",
+      "title": "Four extras in v1 as a stretch tier, built last",
+      "decision": "Pause/resume, check now, URL detail view, and response-time sparkline are v1 but built after all core requirements, in that order, and cut from the bottom if the 3-hour cap is reached. Deferred edge cases (EDGE-01) come after the extras.",
+      "alternatives": [
+        {
+          "option": "Extras mixed into core phases",
+          "whyNot": "Risks a half-done core if time runs out."
+        },
+        {
+          "option": "All extras in v2",
+          "whyNot": "Each is cheap and shows UX judgment; worth attempting once the core is safe."
+        }
+      ],
+      "rationale": "Core value is protected first. Order is cost-to-value: pause/resume and check now are small backend additions; the detail view adds a screen; the sparkline is polish.",
+      "tradeoffs": "Total scope is large for 3 hours. Whatever is cut gets listed in the README as next steps.",
+      "plain": "We build the main parts first. Then we add the extra parts, one at a time. If time ends, we stop and write down what is left.",
+      "ai": {
+        "suggestedBy": "me (extras), Claude (stretch tier and order)",
+        "accepted": "all",
+        "changed": null,
+        "rejected": null
+      },
+      "status": "accepted"
     }
   ],
   "edgeCases": [
@@ -392,6 +419,10 @@
     {
       "date": "2026-11-07",
       "note": "Claude flagged per-URL intervals as bonus scope and a risk to the 3-hour cap. I kept them in scope. See D-008."
+    },
+    {
+      "date": "2026-11-07",
+      "note": "Claude flagged that adding all four extras on top of three configurable intervals risks the 3-hour cap. Kept them, but moved them to a stretch tier built after the core. See D-012."
     }
   ]
 }
