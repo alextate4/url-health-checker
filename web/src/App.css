@@ -299,7 +299,7 @@ button.sort {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 12px;
+  margin-bottom: 8px;
 }
 
 .pager select {
@@ -332,7 +332,27 @@ button.sort {
 /* Layout guard: if the window is still too narrow, the table scrolls inside this box
    instead of pushing past the page edge. */
 .table-wrap {
-  overflow-x: auto;
+  overflow: auto;
+  /* Fixed area that fills most of the screen; the rows scroll inside it, so the page itself
+     never has to scroll and the paging controls above stay in view. */
+  max-height: calc(100vh - 300px);
+  min-height: 240px;
+}
+
+/* Header row stays visible while the rows scroll under it. */
+.table-wrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* The All-checks page has less above the table; the modal has its own, smaller frame. */
+.history-page .table-wrap {
+  max-height: calc(100vh - 230px);
+}
+
+.history-modal .table-wrap {
+  max-height: calc(85vh - 170px);
 }
 
 th,

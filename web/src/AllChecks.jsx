@@ -57,6 +57,16 @@ export default function AllChecks({ onError, urlId }) {
         <p>Loading…</p>
       ) : (
         <>
+          <Pager
+            total={data.total}
+            page={page}
+            pageSize={pageSize}
+            onPage={setPage}
+            onPageSize={(size) => {
+              setPageSize(size)
+              setPage(1)
+            }}
+          />
           <div className="table-wrap">
             <table>
               <thead>
@@ -96,16 +106,6 @@ export default function AllChecks({ onError, urlId }) {
               </tbody>
             </table>
           </div>
-          <Pager
-            total={data.total}
-            page={page}
-            pageSize={pageSize}
-            onPage={setPage}
-            onPageSize={(size) => {
-              setPageSize(size)
-              setPage(1)
-            }}
-          />
         </>
       )}
     </>

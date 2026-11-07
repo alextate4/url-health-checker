@@ -83,6 +83,16 @@ export default function Dashboard({ onError }) {
         <p>Loading…</p>
       ) : (
         <>
+          <Pager
+            total={data.total}
+            page={page}
+            pageSize={pageSize}
+            onPage={setPage}
+            onPageSize={(size) => {
+              setPageSize(size)
+              setPage(1)
+            }}
+          />
           <div className="table-wrap">
             <table>
               <thead>
@@ -107,16 +117,6 @@ export default function Dashboard({ onError }) {
               </tbody>
             </table>
           </div>
-          <Pager
-            total={data.total}
-            page={page}
-            pageSize={pageSize}
-            onPage={setPage}
-            onPageSize={(size) => {
-              setPageSize(size)
-              setPage(1)
-            }}
-          />
         </>
       )}
     </>

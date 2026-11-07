@@ -33,7 +33,13 @@ export default function App() {
       </header>
       {/* Above the table, so a failed request keeps the last good data visible. */}
       {error && <p className="error">{error}</p>}
-      {view === 'checks' ? <AllChecks onError={setError} /> : <Dashboard onError={setError} />}
+      {view === 'checks' ? (
+        <div className="history-page">
+          <AllChecks onError={setError} />
+        </div>
+      ) : (
+        <Dashboard onError={setError} />
+      )}
     </main>
   )
 }
