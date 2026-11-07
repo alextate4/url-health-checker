@@ -2,12 +2,12 @@
 gsd_state_version: "1.0"
 current_phase: 1
 current_phase_name: Walking Skeleton
-status: executing
-stopped_at: Phase 2 task 4 done; next is task 5 (README)
-last_updated: "2026-11-07T19:16:33.453Z"
+status: core-complete
+stopped_at: Core complete (Phases 1-2). Remaining: optional stretch (EXTRA-02, EXTRA-04, edge cases by priority)
+last_updated: "2026-11-07T19:34:02.009Z"
 last_activity: 2026-11-07
-last_activity_desc: "UI refinements: play/pause, icons, history modal"
-state_head: 86a046c5e9170ea6b9669c52fbc85fb73cfe0d44
+last_activity_desc: "README written; Phase 2 complete"
+state_head: 99a6f757cb6503f7b2d601a65da930f446a12a96
 progress:
   total_phases: 2
   completed_phases: 0
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-11-07)
 Phase: 2 of 2 (Features & README) — Phase 1 done via quick task 261107-gje
 Plan: run as /gsd-quick tasks (D-015)
 Status: Ready for Phase 2
-Last activity: 2026-11-07 - UI refinements: play/pause, icons, history modal (EXTRA-01, EXTRA-03 done)
+Last activity: 2026-11-07 - README written; Phase 2 (core) complete
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -90,6 +90,7 @@ None yet.
 | 5 | Phase 2 task 3: add/re-time/remove URLs (API + UI) and capped concurrent checks (inline) | 2026-11-07 | d3c6512 | — |
 | 6 | Phase 2 task 4 (re-scoped): soft delete, retention archive, All-checks page, sorting + 10/50/100 paging, colors, resizable table (inline) | 2026-11-07 | 2cfd1b7 | — |
 | 7 | UI refinements: play/pause (EXTRA-01), trash + plus icons, full-history modal (EXTRA-03), visible sort arrows, larger input (inline) | 2026-11-07 | 86a046c | — |
+| 8 | Phase 2 task 5: README (DLVR-03) with screenshot (inline) | 2026-11-07 | 99a6f75 | — |
 
 ## Deferred Items
 
@@ -102,5 +103,5 @@ Items acknowledged and deferred at milestone close, most recent first:
 ## Session Continuity
 
 Last session: 2026-11-07T17:28:45.167Z
-Stopped at: Phase 2 task 4 done; next is task 5 (README)
+Stopped at: Core complete (Phases 1-2). Remaining: optional stretch (EXTRA-02, EXTRA-04, edge cases by priority)
 Resume file: .planning/quick/261107-gje-phase-1-walking-skeleton/261107-gje-SUMMARY.md

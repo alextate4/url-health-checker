@@ -20,7 +20,7 @@ at the end of Phase 2.** Stretch work (extras, then deferred edge cases) is not 
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Walking Skeleton** - Seeded URLs checked on a schedule, saved in SQLite, shown in the React dashboard, all from one `dotnet run`
-- [ ] **Phase 2: Features & README** - Window picker, uptime %, avg response time, recent-checks strip, auto-refresh, core tests, add/remove/re-time URLs, concurrent checks, retention, README (core complete)
+- [x] **Phase 2: Features & README** - Window picker, uptime %, avg response time, recent-checks strip, auto-refresh, core tests, add/remove/re-time URLs, concurrent checks, retention, README (core complete)
 
 ## Phase Details
 
@@ -78,4 +78,4 @@ Phases execute in numeric order: 1 → 2. Both are core and must complete. Stret
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Walking Skeleton | 1/1 (quick 261107-gje) | Complete | 2026-11-07 |
-| 2. Features & README | 0/TBD | Not started | - |
+| 2. Features & README | 5 quick tasks | Complete | 2026-11-07 |

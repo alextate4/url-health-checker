@@ -48,7 +48,7 @@ core categories first; **EXTRA** and **EDGE** are built last and cut from the bo
 
 - [x] **DLVR-01**: `dotnet run` from a fresh clone serves both the API and the built UI
 - [x] **DLVR-02**: Core tests pass: check classification (healthy, unhealthy status, unreachable), result persistence, and history read-back for a window
-- [ ] **DLVR-03**: README covers what was built, how to run it, what was cut, next steps, testing approach (including what was not tested and why), and how AI was used
+- [x] **DLVR-03**: README covers what was built, how to run it, what was cut, next steps, testing approach (including what was not tested and why), and how AI was used
 
 ### Extras (stretch — build in this order, cut from the bottom)
 
@@ -121,7 +121,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CONF-02 | Phase 2 | Complete (archive, D-023) |
 | DLVR-01 | Phase 1 | Complete |
 | DLVR-02 | Phase 2 | Complete |
-| DLVR-03 | Phase 2 | Pending |
+| DLVR-03 | Phase 2 | Complete |
 | EXTRA-01 | Stretch (quick) — Complete | Pending |
 | EXTRA-02 | Stretch (quick) | Pending |
 | EXTRA-03 | Stretch (quick) — Complete | Pending |
