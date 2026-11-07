@@ -6,7 +6,7 @@ which URLs are healthy right now and how each one has behaved over a chosen time
 
 ![Dashboard](docs/dashboard.png)
 
-- **Decision log:** [`log.json`](log.json) holds every decision (D-001…D-030) with the
+- **Decision log:** [`log.json`](log.json) holds every decision (D-001…D-031) with the
   alternatives and tradeoffs, every edge case (EC-001…EC-032), and notes on how AI was used.
 - **Plain-English backend notes:** [`docs/CONCEPTS.md`](docs/CONCEPTS.md) explains each backend
   idea used here, with a JavaScript comparison.
@@ -33,7 +33,7 @@ creates `server/healthmonitor.db` and seeds four URLs, so you see every state at
 | `https://github.com/this-page-should-not-exist-rosnet` | unhealthy with a status code (404) |
 | `https://unreachable.invalid` | unhealthy with no response and an error reason (DNS; `.invalid` can never resolve) |
 
-**Tests:** `dotnet test` (55 backend tests, ~1 s) and `npm --prefix web test` (7 frontend tests).
+**Tests:** `dotnet test` (55 backend tests, ~1 s) and `npm --prefix web test` (8 frontend tests).
 Backend line coverage is **91%**: `dotnet test --collect "Code Coverage;Format=cobertura"`.
 
 **Frontend work with hot reload:** run `dotnet run --project server` in one terminal and
@@ -73,7 +73,8 @@ the build step only runs when `server/wwwroot` is missing (EC-014).
 - Add a URL with its interval. Change the interval in place (it applies on the next tick, with no
   restart). **Check now** (⚡) runs one check immediately. **Pause / play** a URL. **Remove** it with
   the trash can.
-- Refreshes every 5 s without a page reload, plus a **Refresh** button to reload at once.
+- Refreshes every 5 s without a page reload, plus a **Refresh** button. An **Auto-refresh** checkbox turns
+  polling off, and it stops by itself while every URL is paused (the poll only reads; pausing is what stops checks).
 - Server-side **sorting** on every column with an arrow, and **paging** with 10 / 50 / 100 rows.
 - An **Archive** page lists every check ever saved: live and archived, removed URLs included. It
   has the same sorting and paging.
@@ -171,7 +172,7 @@ the timer loop after its first pass and error-logging branches.
 **Frontend (`web/src/logic.test.js`, Node's built-in test runner, no packages):** the UI's
 decisions live in `web/src/logic.js` and are tested directly: sort toggling and arrows, page count
 (never 0), row status (paused > pending > last result), a real 0% vs a missing value, and the
-tooltip for a check with no response.
+tooltip for a check with no response, and when the dashboard should keep polling.
 
 **Each test can fail for a real reason.** I broke the code on purpose and watched the guarding test
 fail: changing `<= 399` to `< 399` fails the 399 case, disabling the window filter fails the
@@ -236,7 +237,7 @@ the scheduler's later ticks (tests run only its start-up pass), and the deferred
 
 This was built with Claude Code (Claude Opus) as a pair, using a lightweight plan → build → verify
 loop. AI use is meant to be visible:
-- Tests: 55 xUnit + 7 frontend (`node:test`).
+- Tests: 55 xUnit + 8 frontend (`node:test`).
 - Every commit carries a `Co-Authored-By: Claude` trailer.
 - Every decision in `log.json` has an `ai` block that says who suggested it and what I accepted,
   changed, or rejected.
@@ -299,4 +300,4 @@ from the commit timestamps (`TZ=UTC git log --date=iso-strict-local`):
 
 Planning before the clock (requirements, roadmap, process setup) is not counted, per the timebox
 rule. After 19:58 only docs changed: this section, CONCEPTS.md, and a final fresh-clone check
-(clone → `dotnet run` → UI served in 6 s, all 62 tests pass).
+(clone → `dotnet run` → UI served in 6 s, all tests pass).

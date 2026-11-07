@@ -909,6 +909,33 @@
         "rejected": null
       },
       "status": "accepted"
+    },
+    {
+      "id": "D-031",
+      "date": "2026-11-07",
+      "area": "frontend",
+      "title": "Dashboard auto-refresh: a toggle, and no polling while every URL is paused",
+      "decision": "logic.shouldPoll(autoRefresh, rows): poll every 5 s only when the Auto-refresh checkbox is on and at least one URL on screen is not paused (and always before the first load or with no URLs). The effect re-runs when this flips, so playing a URL (which reloads at once) restarts polling. Manual Refresh always works.",
+      "alternatives": [
+        {
+          "option": "Leave polling always on (Claude's recommendation)",
+          "whyNot": "Owner saw the 5 s request in DevTools after pausing everything and wanted it to stop; it was read-only but looked like the pause was not working."
+        },
+        {
+          "option": "Only a toggle",
+          "whyNot": "Owner wanted both."
+        }
+      ],
+      "rationale": "Makes pause look as complete as it is: when nothing can change, the page stops asking.",
+      "tradeoffs": "While everything is paused, a URL added or resumed in another tab does not appear until Refresh or a change in this tab. 'Every URL on screen' means the current page, not all pages.",
+      "plain": "The page asks the server for new results every 5 seconds. Now you can turn that off. It also stops by itself when every web address is paused.",
+      "ai": {
+        "suggestedBy": "Owner asked for both options after Claude explained the poll is read-only",
+        "accepted": "Both built",
+        "changed": null,
+        "rejected": "Claude's recommendation to leave it as is"
+      },
+      "status": "accepted"
     }
   ],
   "edgeCases": [
@@ -1234,6 +1261,10 @@
     {
       "date": "2026-11-07",
       "note": "The first version of the concurrency test passed even when Claude broke the scheduler into a one-at-a-time loop, because the hanging URL happened to be the last seed. Found only by the deliberate-break check; the test now hangs the first URL and fails on the broken loop. A later break check silently ran nothing because macOS has no `timeout` command; Claude noticed the empty output and re-ran it."
+    },
+    {
+      "date": "2026-11-07",
+      "note": "Owner reported pause 'not working'. Claude checked the database first: zero checks had been saved after any pause, so the scheduler was correct; what kept running was the dashboard's read-only 5 s poll seen in DevTools. Claude explained the difference instead of 'fixing' working code, then built the owner's chosen change. Two test slips while proving it: an env var name with dots broke the shell command (no server started, so 0 requests), and a first 'all paused' run was wrong because the owner had resumed one URL and added another in the meantime; a controlled DB copy fixed both."
     }
   ]
 }
