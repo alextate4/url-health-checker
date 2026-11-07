@@ -41,8 +41,8 @@ core categories first; **EXTRA** and **EDGE** are built last and cut from the bo
 
 ### Settings
 
-- [ ] **CONF-01**: User can set the global retention period from the UI
-- [ ] **CONF-02**: Check results older than the retention period are deleted automatically on a timer
+- [x] **CONF-01**: User can set the global retention period from the UI
+- [x] **CONF-02**: Check results older than the retention period are deleted automatically on a timer
 
 ### Delivery
 
@@ -117,8 +117,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DASH-04 | Phase 2 | Complete |
 | DASH-05 | Phase 2 | Complete |
 | DASH-06 | Phase 2 | Complete |
-| CONF-01 | Phase 2 | Pending |
-| CONF-02 | Phase 2 | Pending |
+| CONF-01 | Phase 2 | Complete (archive, D-023) |
+| CONF-02 | Phase 2 | Complete (archive, D-023) |
 | DLVR-01 | Phase 1 | Complete |
 | DLVR-02 | Phase 2 | Complete |
 | DLVR-03 | Phase 2 | Pending |

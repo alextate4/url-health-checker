@@ -609,7 +609,7 @@
         "changed": null,
         "rejected": null
       },
-      "status": "accepted"
+      "status": "amended by D-023 (DELETE is now a soft delete)"
     },
     {
       "id": "D-022",
@@ -639,6 +639,72 @@
         "accepted": "Owner approved task 3; Claude picked the non-awaited design over Parallel.ForEachAsync after reasoning that an awaited pass still blocks the next tick for up to 10 s.",
         "changed": null,
         "rejected": "Parallel.ForEachAsync (Claude's first idea)"
+      },
+      "status": "accepted"
+    },
+    {
+      "id": "D-023",
+      "date": "2026-11-07",
+      "area": "data",
+      "title": "No hard deletes: soft-delete URLs, archive old results, show everything on an All-checks page",
+      "decision": "Owner rule: never hard-delete data. (1) Removing a URL sets urls.deleted_at; the scheduler and dashboard skip it, its results stay. (2) Retention (CONF-01/02) keeps its UI setting and timer, but a RetentionSweeper moves results older than retention_days (settings table, default 30) from check_results into check_results_archive in one transaction instead of deleting them. (3) A new All-checks page (#/checks) lists every result, live and archived, removed URLs included, marked as such. Existing DBs get the deleted_at column via a one-time ALTER at startup.",
+      "alternatives": [
+        {
+          "option": "Hard delete as the brief words it ('Results older than it are deleted on a timer')",
+          "whyNot": "Owner wants full history preserved; archiving still removes old rows from the live table, which is the practical point of retention (small, fast window queries)."
+        },
+        {
+          "option": "An archived_at flag on check_results",
+          "whyNot": "The live table keeps growing and every query must remember the filter; a separate table keeps the dashboard queries unchanged."
+        },
+        {
+          "option": "Keep the hard DELETE for URLs from D-021",
+          "whyNot": "Contradicts the no-hard-delete rule and loses history on one click."
+        }
+      ],
+      "rationale": "Meets the owner's no-data-loss rule and the brief's retention requirement in spirit: old results leave the live table on a timer, controlled by a UI setting.",
+      "tradeoffs": "Deviates from the brief's literal wording ('deleted'); the README must say so. Storage grows without limit (EC-026). Removed URLs cannot be restored yet (EC-027).",
+      "plain": "We never throw data away. Old results move to a second table. Removed web addresses are only hidden. A history page shows everything.",
+      "ai": {
+        "suggestedBy": "Owner set the no-hard-delete rule; Claude flagged that it conflicts with the brief's retention wording and offered three options",
+        "accepted": "Owner chose 'archive, don't delete' and soft delete for URL rows.",
+        "changed": null,
+        "rejected": "Hard delete; soft-delete flag on results"
+      },
+      "status": "accepted"
+    },
+    {
+      "id": "D-024",
+      "date": "2026-11-07",
+      "area": "api",
+      "title": "Sorting and paging: SQL for All checks, C# for the dashboard, fixed lists of sort keys",
+      "decision": "Both GET /api/urls and GET /api/checks take sort, dir (asc|desc), page (>=1), pageSize (10|50|100) and return {total, rows}; anything else is 400. All checks sorts and pages in SQL (ORDER BY + LIMIT/OFFSET over a UNION ALL of live and archive). The dashboard sorts and pages in C# after building its rows, because uptime/average are computed per URL and the list is one row per URL. Sort keys map to fixed column expressions in a dictionary, so client text never reaches the SQL string. The UI switches views with the URL hash instead of a router package. Column widths/row heights use CSS resize (stretch).",
+      "alternatives": [
+        {
+          "option": "Sort the dashboard in SQL too",
+          "whyNot": "Uptime and average come from a per-URL query; doing it in SQL would need one large GROUP BY rewrite for a list of 4–10 rows."
+        },
+        {
+          "option": "Client-side sorting only",
+          "whyNot": "Owner asked for FE and BE sorting, and All checks can hold thousands of rows."
+        },
+        {
+          "option": "Keyset paging",
+          "whyNot": "Better for a growing table (EC-028) but harder to explain and to combine with arbitrary sort columns in the time left."
+        },
+        {
+          "option": "react-router",
+          "whyNot": "New package for two views; a hash check is 10 lines."
+        }
+      ],
+      "rationale": "Smallest design that gives real server-side sorting and paging where the data is large, without SQL injection risk.",
+      "tradeoffs": "The dashboard still loads every URL's summary before paging (fine at this size). OFFSET paging can shift rows (EC-028). Resized widths are not saved (EC-029).",
+      "plain": "You can click a column title to sort, and pick 10, 50, or 100 rows per page. The server does the sorting. It only accepts column names from a fixed list, so nobody can sneak in database commands.",
+      "ai": {
+        "suggestedBy": "Owner asked for sorting (FE and BE), 10/50/100 paging, colors, and resizable columns/rows; Claude chose where each sort runs",
+        "accepted": "Owner chose sorting/paging on both tables over the recommended All-checks-only option.",
+        "changed": null,
+        "rejected": null
       },
       "status": "accepted"
     }
@@ -708,7 +774,7 @@
       "description": "Decide whether results are removed with it or kept.",
       "status": "fixed",
       "plain": "If you remove an address, what happens to its old results?",
-      "fixedNote": "Phase 2 task 3: DELETE /api/urls/{id} removes the URL and its check_results in one transaction (D-021)."
+      "fixedNote": "Phase 2 task 3: DELETE /api/urls/{id} removes the URL and its check_results in one transaction (D-021). Superseded by D-023: remove is now a soft delete and history is kept."
     },
     {
       "id": "EC-009",
@@ -827,8 +893,9 @@
       "priority": 3,
       "title": "A check still running when its URL is deleted saves an orphan result",
       "description": "Checks are not awaited by the loop (D-022). If the URL is deleted during its check, InsertCheckResultAsync still writes a row for the deleted url_id. SQLite foreign keys are not enforced by default, so nothing stops it. The row is never shown.",
-      "status": "deferred",
-      "plain": "If you delete a URL at the exact moment it is being checked, one hidden leftover row can be saved."
+      "status": "fixed",
+      "plain": "If you delete a URL at the exact moment it is being checked, one hidden leftover row can be saved.",
+      "fixedNote": "With soft delete (D-023) the urls row stays, so a late result still belongs to a real (removed) URL and shows on the All-checks page."
     },
     {
       "id": "EC-024",
@@ -845,6 +912,46 @@
       "description": "IntervalEditor keeps its own state, set once from the first load.",
       "status": "deferred",
       "plain": "If you change an interval in a second browser tab, the first tab still shows the old number in the box."
+    },
+    {
+      "id": "EC-026",
+      "priority": 2,
+      "title": "Nothing is ever hard-deleted, so the database only grows",
+      "description": "Retention archives instead of deleting (D-023) and removed URLs keep their rows. The archive table has no limit. A purge or export job would be needed for long-running use.",
+      "status": "deferred",
+      "plain": "We never throw data away, so the database file keeps getting bigger."
+    },
+    {
+      "id": "EC-027",
+      "priority": 3,
+      "title": "A removed URL cannot be restored from the UI",
+      "description": "Soft delete sets deleted_at, but there is no undo button or endpoint. Re-adding the same URL creates a new id with empty history.",
+      "status": "deferred",
+      "plain": "If you remove a web address by mistake, you can add it again, but its old history stays under the old entry."
+    },
+    {
+      "id": "EC-028",
+      "priority": 3,
+      "title": "All-checks paging uses OFFSET, so pages shift when new results arrive",
+      "description": "LIMIT/OFFSET paging over a growing table can repeat or skip a row between page clicks. Keyset paging (WHERE checked_at < last seen) would fix it. The page is not polled, which limits the effect.",
+      "status": "deferred",
+      "plain": "While you page through the history, new checks can push a row onto the next page twice."
+    },
+    {
+      "id": "EC-029",
+      "priority": 3,
+      "title": "Column widths and row heights are not saved",
+      "description": "The CSS resize handles change the layout only until the page reloads. localStorage could keep them.",
+      "status": "deferred",
+      "plain": "If you resize a column and reload the page, it goes back to normal."
+    },
+    {
+      "id": "EC-030",
+      "priority": 3,
+      "title": "Retention days are not validated on the server",
+      "description": "PUT /api/settings accepts 0 or negative days; 0 would archive every result on the next sweep (nothing is lost, it moves to the archive). The form uses min=1.",
+      "status": "deferred",
+      "plain": "The server does not stop a bad retention number, but the form in the page does."
     }
   ],
   "aiNotes": [
@@ -883,6 +990,10 @@
     {
       "date": "2026-11-07",
       "note": "Phase 2 task 3 built inline. Mistake by Claude: the verify script ended with `lsof -ti tcp:5080 | xargs kill`. Port 5080 was already used by the owner's own running app, so the first curl checks hit the old build (405/404) and the cleanup killed the owner's process. Claude told the owner, and all later checks run on port 5081 and kill only the PID they started. Also found while testing: https://www.wikipedia.org answers 403 with no User-Agent (logged EC-022)."
+    },
+    {
+      "date": "2026-11-07",
+      "note": "Task 4 was re-scoped by the owner (soft delete, no hard deletes, sorting, paging, colors, resizable table). Claude pointed out that 'never hard delete' conflicts with the brief's retention wording before building, and the owner picked archiving. Claude's first edit script broke on C# raw strings (\"\"\") inside a Python heredoc and left Program.cs half-updated; the build caught it, and Claude redid Database.cs from snippet files. API checks ran against a copy of the DB on port 5081 so the owner's running instance and data were not touched."
     }
   ]
 }

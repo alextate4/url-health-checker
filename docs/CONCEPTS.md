@@ -364,3 +364,48 @@ rejection goes unhandled.
 
 **Why we use it:** One slow URL can take 10 seconds to time out. If the loop waited for it, every
 other URL would wait too.
+
+---
+
+## Soft delete and an archive table
+
+**What it is:** A hard delete removes a row for good. A soft delete only marks the row. We set
+`deleted_at` to the current time. Queries for the dashboard skip rows that have a `deleted_at`
+value. The data is still in the database. An archive table is a second table with the same
+columns. Old results move there. They leave the main table, but they are not lost.
+
+**JavaScript comparison:** A hard delete is `list.filter(x => x.id !== id)`: the item is gone. A
+soft delete is `list.map(x => x.id === id ? { ...x, deletedAt: now } : x)`: the item stays, and
+the screen hides it.
+
+**Why we use it:** The owner wants to keep all history. The main table stays small, so the
+dashboard stays fast.
+
+---
+
+## Paging with LIMIT and OFFSET
+
+**What it is:** `LIMIT 50` tells the database to return at most 50 rows. `OFFSET 100` tells it to
+skip the first 100 rows. So page 3 with 50 rows per page is `LIMIT 50 OFFSET 100`. A second query
+with `COUNT(*)` gives the total, so the page can show "page 3 of 9".
+
+**JavaScript comparison:** It is like `rows.slice(100, 150)`. The difference is that the database
+does the slicing, so the server never loads the other rows.
+
+**Why we use it:** The All-checks table can have many thousands of rows. The browser gets only one
+page at a time.
+
+---
+
+## Why the sort column comes from a fixed list
+
+**What it is:** SQL parameters (like `@PageSize`) can only hold values. They cannot hold a column
+name. So the column name in `ORDER BY` must be part of the SQL text. If we put the user's text
+there directly, a user could send SQL commands. That attack is called SQL injection. We prevent it
+with a dictionary. The user sends a key like `url`. We look up the real column (`u.url`). An
+unknown key gets a 400 answer before any SQL runs.
+
+**JavaScript comparison:** It is like `const column = { url: 'u.url', code: 'a.status_code' }[key]`
+and `if (!column) return res.status(400)`. You never build the query with `` `ORDER BY ${key}` ``.
+
+**Why we use it:** Users can sort by any column, and the server stays safe.
