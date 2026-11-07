@@ -44,3 +44,26 @@ export function checkTooltip(check) {
     new Date(check.checkedAt).toLocaleString(),
   ].join(' · ')
 }
+
+// Defaults and floors for the two settings. The page must never trust the server blindly: an old
+// server, a missing field, or a bad stored value would otherwise give undefined, NaN, or 0, and
+// setInterval(load, NaN) fires about every millisecond and floods the API.
+export const DEFAULT_CHECK_SECONDS = 60
+export const MIN_CHECK_SECONDS = 10
+export const DEFAULT_RETENTION_DAYS = 30
+export const MIN_RETENTION_DAYS = 1
+
+// Anything missing or not a positive number gets the default; anything too small gets the minimum.
+function settingOrDefault(value, fallback, minimum) {
+  const n = Math.round(Number(value))
+  if (value === null || value === undefined || value === '' || !Number.isFinite(n) || n <= 0) return fallback
+  return Math.max(minimum, n)
+}
+
+export function checkSecondsOrDefault(value) {
+  return settingOrDefault(value, DEFAULT_CHECK_SECONDS, MIN_CHECK_SECONDS)
+}
+
+export function retentionDaysOrDefault(value) {
+  return settingOrDefault(value, DEFAULT_RETENTION_DAYS, MIN_RETENTION_DAYS)
+}

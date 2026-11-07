@@ -1,7 +1,7 @@
 // Run with: npm --prefix web test   (Node's built-in runner; no packages)
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { nextSort, sortArrow, pageCount, rowStatus, formatPercent, formatMs, checkTooltip } from './logic.js'
+import { nextSort, sortArrow, pageCount, rowStatus, formatPercent, formatMs, checkTooltip, checkSecondsOrDefault, retentionDaysOrDefault } from './logic.js'
 
 test('clicking the sorted column flips its direction, both ways', () => {
   assert.deepEqual(nextSort({ key: 'url', dir: 'asc' }, 'url'), { key: 'url', dir: 'desc' })
@@ -41,4 +41,19 @@ test('a real 0 shows as 0, and only a missing value shows a dash', () => {
 test('a check with no response says so in its tooltip', () => {
   const text = checkTooltip({ healthy: false, statusCode: null, responseTimeMs: 12, checkedAt: '2026-11-07T18:00:00Z' })
   assert.match(text, /^Unhealthy · no response · 12 ms · /)
+})
+
+test('check interval: 60 s when missing or broken, never below 10 s', () => {
+  assert.equal(checkSecondsOrDefault(undefined), 60) // an old server sends no field
+  assert.equal(checkSecondsOrDefault(null), 60)
+  assert.equal(checkSecondsOrDefault('abc'), 60)
+  assert.equal(checkSecondsOrDefault(0), 60)
+  assert.equal(checkSecondsOrDefault(3), 10)
+  assert.equal(checkSecondsOrDefault('45'), 45)
+})
+
+test('retention: 30 days when missing or 0, never below 1 day', () => {
+  assert.equal(retentionDaysOrDefault(undefined), 30)
+  assert.equal(retentionDaysOrDefault(0), 30)
+  assert.equal(retentionDaysOrDefault(7), 7)
 })

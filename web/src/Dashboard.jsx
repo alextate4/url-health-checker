@@ -6,6 +6,7 @@ import CheckIntervalSetting from './CheckIntervalSetting.jsx'
 import { SortHeader, PlainHeader, Pager } from './TableControls.jsx'
 import { query } from './api.js'
 import { RefreshIcon } from './icons.jsx'
+import { checkSecondsOrDefault, DEFAULT_CHECK_SECONDS } from './logic.js'
 
 const WINDOWS = ['1h', '24h', '7d']
 
@@ -23,9 +24,10 @@ export default function Dashboard({ onError }) {
   // ONE rate (D-033): the server checks every URL every checkSeconds, and auto-refresh re-reads the
   // table at that same rate, so each refresh can show new results. Auto-refresh only reads.
   const [autoRefresh, setAutoRefresh] = useState(true)
-  const [checkSeconds, setCheckSeconds] = useState(60)
-  const onIntervalLoaded = useCallback((seconds) => setCheckSeconds(seconds), [])
-  const refreshMs = checkSeconds * 1000
+  const [checkSeconds, setCheckSeconds] = useState(DEFAULT_CHECK_SECONDS)
+  // Normalized again here, so the timer can never get NaN, 0, or anything under 10 s.
+  const onIntervalLoaded = useCallback((seconds) => setCheckSeconds(checkSecondsOrDefault(seconds)), [])
+  const refreshMs = checkSecondsOrDefault(checkSeconds) * 1000
 
   useEffect(() => {
     // Set on cleanup, so a slow reply for old settings cannot overwrite the new data.
