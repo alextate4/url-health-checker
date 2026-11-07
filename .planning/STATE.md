@@ -3,11 +3,11 @@ gsd_state_version: "1.0"
 current_phase: 1
 current_phase_name: Walking Skeleton
 status: executing
-stopped_at: Phase 1 built (quick 261107-gje); next is Phase 2 via /gsd-quick
-last_updated: "2026-11-07T18:18:08.324Z"
+stopped_at: Phase 2 task 1 done; next is task 2 (core xUnit tests)
+last_updated: "2026-11-07T18:35:38.781Z"
 last_activity: 2026-11-07
-last_activity_desc: "Completed quick task 261107-gje: Phase 1 walking skeleton"
-state_head: de3bd79b026cc17a6f62f724f6ec53d5a4d09525
+last_activity_desc: "Completed quick task 261107-h5q: Phase 2 task 1 (history window)"
+state_head: 9090ad2bb65503caa77ff24ed2ae4a828bb6f7e7
 progress:
   total_phases: 2
   completed_phases: 0
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-11-07)
 Phase: 2 of 2 (Features & README) — Phase 1 done via quick task 261107-gje
 Plan: run as /gsd-quick tasks (D-015)
 Status: Ready for Phase 2
-Last activity: 2026-11-07 - Completed quick task 261107-gje: Phase 1 walking skeleton
+Last activity: 2026-11-07 - Completed quick task 261107-h5q: Phase 2 task 1 (history window)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -85,6 +85,7 @@ None yet.
 |---|-------------|------|--------|-----------|
 | 261107-gje | Phase 1 walking skeleton: seeded URLs checked on schedule, saved in SQLite, React table, one dotnet run | 2026-11-07 | c3752bf | [261107-gje-phase-1-walking-skeleton](./quick/261107-gje-phase-1-walking-skeleton/) |
 | 2 | Phase 1 review fixes: npm ci, lean .gitignore, DB path pinned to content root | 2026-11-07 | de3bd79 | — |
+| 261107-h5q | Phase 2 task 1: window picker 1h/24h/7d, uptime % + avg ms, recent-checks strip, 5s polling, /checks?window= API | 2026-11-07 | 9090ad2 | [261107-h5q-phase-2-task-1-history-window-stats-stri](./quick/261107-h5q-phase-2-task-1-history-window-stats-stri/) |
 
 ## Deferred Items
 
@@ -97,5 +98,5 @@ Items acknowledged and deferred at milestone close, most recent first:
 ## Session Continuity
 
 Last session: 2026-11-07T17:28:45.167Z
-Stopped at: Phase 1 built and verified; next is Phase 2 via /gsd-quick
+Stopped at: Phase 2 task 1 done; next is task 2 (core xUnit tests)
 Resume file: .planning/quick/261107-gje-phase-1-walking-skeleton/261107-gje-SUMMARY.md

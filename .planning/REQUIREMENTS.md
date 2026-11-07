@@ -28,16 +28,16 @@ core categories first; **EXTRA** and **EDGE** are built last and cut from the bo
 
 - [x] **HIST-01**: Every check result is saved in SQLite with URL id, UTC timestamp, status code (nullable), response time, healthy flag, and error message (nullable)
 - [x] **HIST-02**: URLs, settings, and history survive an app restart
-- [ ] **HIST-03**: The API returns check results for a URL within a requested time window
+- [x] **HIST-03**: The API returns check results for a URL within a requested time window
 
 ### Dashboard
 
 - [x] **DASH-01**: Dashboard lists every URL with a clear healthy/unhealthy indicator based on its latest check
 - [x] **DASH-02**: Each row shows the last status code and last response time
-- [ ] **DASH-03**: Each row shows uptime % and average response time over the selected window
-- [ ] **DASH-04**: Each row shows a strip of recent checks colored by result
-- [ ] **DASH-05**: User can choose the history window (1h / 24h / 7d); stats and strip update to match
-- [ ] **DASH-06**: Dashboard refreshes automatically on a polling interval without a page reload
+- [x] **DASH-03**: Each row shows uptime % and average response time over the selected window
+- [x] **DASH-04**: Each row shows a strip of recent checks colored by result
+- [x] **DASH-05**: User can choose the history window (1h / 24h / 7d); stats and strip update to match
+- [x] **DASH-06**: Dashboard refreshes automatically on a polling interval without a page reload
 
 ### Settings
 
@@ -110,13 +110,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CHK-05 | Phase 2 | Pending |
 | HIST-01 | Phase 1 | Complete |
 | HIST-02 | Phase 1 | Complete |
-| HIST-03 | Phase 2 | Pending |
+| HIST-03 | Phase 2 | Complete |
 | DASH-01 | Phase 1 | Complete |
 | DASH-02 | Phase 1 | Complete |
-| DASH-03 | Phase 2 | Pending |
-| DASH-04 | Phase 2 | Pending |
-| DASH-05 | Phase 2 | Pending |
-| DASH-06 | Phase 2 | Pending |
+| DASH-03 | Phase 2 | Complete |
+| DASH-04 | Phase 2 | Complete |
+| DASH-05 | Phase 2 | Complete |
+| DASH-06 | Phase 2 | Complete |
 | CONF-01 | Phase 2 | Pending |
 | CONF-02 | Phase 2 | Pending |
 | DLVR-01 | Phase 1 | Complete |
