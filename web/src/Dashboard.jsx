@@ -23,7 +23,7 @@ export default function Dashboard({ onError }) {
   // ONE rate (D-033): the server checks every URL every checkSeconds, and auto-refresh re-reads the
   // table at that same rate, so each refresh can show new results. Auto-refresh only reads.
   const [autoRefresh, setAutoRefresh] = useState(true)
-  const [checkSeconds, setCheckSeconds] = useState(30)
+  const [checkSeconds, setCheckSeconds] = useState(60)
   const onIntervalLoaded = useCallback((seconds) => setCheckSeconds(seconds), [])
   const refreshMs = checkSeconds * 1000
 

@@ -19,6 +19,7 @@ export default function CheckIntervalSetting({ onLoaded, onError }) {
 
   function handleSubmit(event) {
     event.preventDefault()
+    // The input's min/max already block a bad value in the browser; the server checks again (D-026).
     const value = Number(seconds)
     saveCheckIntervalSeconds(value)
       .then(() => {

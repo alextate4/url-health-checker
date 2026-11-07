@@ -138,6 +138,22 @@ public class DatabaseTests : IDisposable
         Assert.Equal([20L, 21L, 22L, 23L, 24L], page3.Rows.Select(r => r.ResponseTimeMs));
     }
 
+    // D-033: the one check interval defaults to 60 s and is never read as less than 10 s, even if a
+    // lower value is written straight into the database.
+    [Fact]
+    public async Task Check_interval_defaults_to_60_and_never_reads_below_10()
+    {
+        var db = new Database(ConnectionString);
+        await db.InitializeAsync();
+        Assert.Equal(60, await db.GetCheckIntervalSecondsAsync());
+
+        using (var connection = new SqliteConnection(ConnectionString))
+        {
+            await connection.ExecuteAsync("UPDATE settings SET value = '3' WHERE key = 'check_interval_seconds'");
+        }
+        Assert.Equal(10, await db.GetCheckIntervalSecondsAsync());
+    }
+
     // InsertCheckResultAsync always stamps "now", so an old row is written directly.
     private async Task InsertCheckAt(DateTime checkedAt, int statusCode, bool healthy)
     {

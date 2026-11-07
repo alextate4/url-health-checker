@@ -63,7 +63,7 @@ public class CheckSchedulerTests
     {
         using var temp = new TempDatabase();
         await temp.Db.InitializeAsync();
-        await temp.Db.InsertCheckResultAsync(1, new CheckResult(200, 50, true, null)); // default interval: 30 s
+        await temp.Db.InsertCheckResultAsync(1, new CheckResult(200, 50, true, null)); // default interval: 60 s
         var scheduler = Scheduler(temp, AlwaysOk());
 
         await scheduler.StartAsync(CancellationToken.None);

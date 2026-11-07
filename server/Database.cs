@@ -65,7 +65,7 @@ public class Database
         );
         INSERT OR IGNORE INTO settings (key, value) VALUES ('retention_days', '30');
         -- One check interval for every URL; the dashboard also auto-refreshes at this rate (D-033).
-        INSERT OR IGNORE INTO settings (key, value) VALUES ('check_interval_seconds', '30');
+        INSERT OR IGNORE INTO settings (key, value) VALUES ('check_interval_seconds', '60');
         """;
 
     // Seeds are chosen so the first run shows every state: healthy, 404 with a code,
@@ -297,7 +297,9 @@ public class Database
     {
         using var connection = new SqliteConnection(_connectionString);
         var value = await connection.ExecuteScalarAsync<string>("SELECT value FROM settings WHERE key = 'check_interval_seconds'");
-        return int.Parse(value!);
+        // The API refuses anything under 10 s, but a value edited straight into the database could
+        // still be lower. Never let the scheduler run faster than the minimum.
+        return Math.Max(InputRules.MinIntervalSeconds, int.Parse(value!));
     }
 
     public async Task SetCheckIntervalSecondsAsync(int seconds)

@@ -144,7 +144,7 @@ public class ApiTests
 
         var defaults = await Json(await client.GetAsync("/api/settings"));
         Assert.Equal(30, defaults.GetProperty("retentionDays").GetInt32());
-        Assert.Equal(30, defaults.GetProperty("checkIntervalSeconds").GetInt32());
+        Assert.Equal(60, defaults.GetProperty("checkIntervalSeconds").GetInt32());
 
         Assert.Equal(HttpStatusCode.NoContent, (await client.PutAsync("/api/settings", Body(new { retentionDays = 7 }))).StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, (await client.PutAsync("/api/settings", Body(new { checkIntervalSeconds = 60 }))).StatusCode);
