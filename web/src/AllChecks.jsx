@@ -4,16 +4,19 @@ import { query } from './api.js'
 
 // Every result ever saved: live and archived, for every URL, removed ones included (D-023).
 // Not polled: new rows would shift the pages under the user. The Refresh button reloads on demand.
-export default function AllChecks({ onError }) {
+// With urlId it shows one URL only (the history modal on the dashboard).
+export default function AllChecks({ onError, urlId }) {
   const [data, setData] = useState(null)
   const [sort, setSort] = useState({ key: 'checkedAt', dir: 'desc' })
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(50)
+  const [pageSize, setPageSize] = useState(urlId ? 10 : 50)
   const [version, setVersion] = useState(0)
 
   useEffect(() => {
     let ignore = false
-    fetch(`/api/checks${query({ sort: sort.key, dir: sort.dir, page, pageSize })}`)
+    const params = { sort: sort.key, dir: sort.dir, page, pageSize }
+    if (urlId) params.urlId = urlId
+    fetch(`/api/checks${query(params)}`)
       .then((response) => {
         if (!response.ok) throw new Error(`HTTP ${response.status}`)
         return response.json()
@@ -29,7 +32,7 @@ export default function AllChecks({ onError }) {
     return () => {
       ignore = true
     }
-  }, [sort, page, pageSize, version, onError])
+  }, [sort, page, pageSize, version, onError, urlId])
 
   function changeSort(next) {
     setSort(next)
@@ -41,7 +44,11 @@ export default function AllChecks({ onError }) {
   return (
     <>
       <div className="toolbar">
-        <p className="hint">Every check ever saved. Archived results and removed URLs are kept and marked.</p>
+        <p className="hint">
+          {urlId
+            ? 'Every check for this URL, newest first.'
+            : 'Every check ever saved. Archived results and removed URLs are kept and marked.'}
+        </p>
         <button type="button" onClick={() => setVersion((v) => v + 1)}>
           Refresh
         </button>
@@ -65,12 +72,12 @@ export default function AllChecks({ onError }) {
             <tbody>
               {data.rows.map((c, i) => (
                 <tr key={`${c.urlId}-${c.checkedAt}-${i}`}>
-                  <td>{new Date(c.checkedAt).toLocaleString()}</td>
                   <td>
-                    <div className="resizable-row">
-                      {c.url}
-                      {c.urlRemoved && <span className="tag">removed</span>}
-                    </div>
+                    <div className="resizable-row">{new Date(c.checkedAt).toLocaleString()}</div>
+                  </td>
+                  <td>
+                    {c.url}
+                    {c.urlRemoved && <span className="tag">removed</span>}
                   </td>
                   <td>
                     <span className={`dot ${c.healthy ? 'healthy' : 'unhealthy'}`}></span>

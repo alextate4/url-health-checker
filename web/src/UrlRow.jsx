@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { changeInterval, removeUrl } from './api.js'
+import { changeInterval, removeUrl, setPaused } from './api.js'
+import { TrashIcon, PlayIcon, PauseIcon, HistoryIcon } from './icons.jsx'
+import HistoryModal from './HistoryModal.jsx'
 
 // Plain text for the browser's own tooltip; the word keeps it readable without color.
 function tooltip(c) {
@@ -42,6 +44,7 @@ function IntervalEditor({ url, onChanged, onError }) {
 export default function UrlRow({ url, onChanged, onError }) {
   const check = url.lastCheck
   const summary = url.summary
+  const [showHistory, setShowHistory] = useState(false)
 
   // The word next to the dot keeps the status readable without color.
   let status = { word: 'Pending', className: 'pending' }
@@ -49,6 +52,14 @@ export default function UrlRow({ url, onChanged, onError }) {
     status = check.healthy
       ? { word: 'Healthy', className: 'healthy' }
       : { word: 'Unhealthy', className: 'unhealthy' }
+  }
+  // Paused wins: the last result is old, so showing it as the current state would mislead.
+  if (url.paused) status = { word: 'Paused', className: 'pending' }
+
+  function handlePlayPause() {
+    setPaused(url.id, !url.paused)
+      .then(onChanged)
+      .catch((err) => onError(`Could not ${url.paused ? 'resume' : 'pause'}: ${err.message}`))
   }
 
   function handleRemove() {
@@ -62,14 +73,26 @@ export default function UrlRow({ url, onChanged, onError }) {
   return (
     <tr>
       <td>
-        <span className={`dot ${status.className}`}></span>
-        {status.word}
+        {/* Drag this cell's corner to change the row height. */}
+        <div className="resizable-row">
+          <span className={`dot ${status.className}`}></span>
+          {status.word}
+        </div>
       </td>
+      <td>{url.url}</td>
       <td>
-        <div className="resizable-row">{url.url}</div>
-      </td>
-      <td>
-        <IntervalEditor url={url} onChanged={onChanged} onError={onError} />
+        <div className="every">
+          <button
+            type="button"
+            className="icon"
+            onClick={handlePlayPause}
+            aria-label={url.paused ? `Resume checking ${url.url}` : `Pause checking ${url.url}`}
+            title={url.paused ? 'Resume' : 'Pause'}
+          >
+            {url.paused ? <PlayIcon /> : <PauseIcon />}
+          </button>
+          <IntervalEditor url={url} onChanged={onChanged} onError={onError} />
+        </div>
       </td>
       <td>{check?.statusCode ?? '—'}</td>
       <td>{check ? `${check.responseTimeMs} ms` : '—'}</td>
@@ -80,20 +103,38 @@ export default function UrlRow({ url, onChanged, onError }) {
       </td>
       <td>{summary.avgResponseTimeMs === null ? '—' : `${summary.avgResponseTimeMs} ms`}</td>
       <td>
-        {summary.recent.length === 0 ? (
-          '—'
-        ) : (
-          <div className="strip">
-            {summary.recent.map((c) => (
-              <span key={c.checkedAt} className={`box ${c.healthy ? 'healthy' : 'unhealthy'}`} title={tooltip(c)}></span>
-            ))}
-          </div>
-        )}
+        <div className="recent">
+          {summary.recent.length === 0 ? (
+            '—'
+          ) : (
+            <div className="strip">
+              {summary.recent.map((c) => (
+                <span key={c.checkedAt} className={`box ${c.healthy ? 'healthy' : 'unhealthy'}`} title={tooltip(c)}></span>
+              ))}
+            </div>
+          )}
+          <button
+            type="button"
+            className="icon"
+            onClick={() => setShowHistory(true)}
+            aria-label={`Show full history of ${url.url}`}
+            title="Full history"
+          >
+            <HistoryIcon />
+          </button>
+        </div>
+        {showHistory && <HistoryModal url={url} onClose={() => setShowHistory(false)} onError={onError} />}
       </td>
       <td>{check?.error}</td>
       <td>
-        <button type="button" className="remove" onClick={handleRemove}>
-          Remove
+        <button
+          type="button"
+          className="icon remove"
+          onClick={handleRemove}
+          aria-label={`Remove ${url.url}`}
+          title="Remove (history is kept)"
+        >
+          <TrashIcon />
         </button>
       </td>
     </tr>

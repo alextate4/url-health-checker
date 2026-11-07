@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { addUrl } from './api.js'
+import { PlusIcon } from './icons.jsx'
 
 // The browser's own checks (type="url", min) stop obvious typos. The server does not validate yet:
 // that is a logged edge case.
@@ -38,7 +39,9 @@ export default function AddUrlForm({ onChanged, onError }) {
         />
         s
       </label>
-      <button type="submit">Add URL</button>
+      <button type="submit" className="primary">
+        <PlusIcon /> Add URL
+      </button>
     </form>
   )
 }

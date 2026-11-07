@@ -19,6 +19,10 @@ export function changeInterval(id, intervalSeconds) {
   return send('PATCH', `/api/urls/${id}`, { intervalSeconds })
 }
 
+export function setPaused(id, paused) {
+  return send('PATCH', `/api/urls/${id}`, { paused })
+}
+
 export function removeUrl(id) {
   return send('DELETE', `/api/urls/${id}`)
 }

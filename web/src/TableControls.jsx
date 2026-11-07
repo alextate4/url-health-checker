@@ -4,7 +4,9 @@
 // A header cell that sorts by its column. Clicking the same column again flips the direction.
 export function SortHeader({ label, sortKey, sort, onSort }) {
   const active = sort.key === sortKey
-  const arrow = active ? (sort.dir === 'asc' ? ' ▲' : ' ▼') : ''
+  // Every sortable column shows an arrow, so it is clear the column can be sorted.
+  // ↕ = not sorted by this column yet; ▲/▼ = the current sort and its direction.
+  const arrow = active ? (sort.dir === 'asc' ? '▲' : '▼') : '↕'
 
   function handleClick() {
     onSort({ key: sortKey, dir: active && sort.dir === 'asc' ? 'desc' : 'asc' })
@@ -16,7 +18,7 @@ export function SortHeader({ label, sortKey, sort, onSort }) {
       <div className="resizable">
         <button type="button" className="sort" onClick={handleClick}>
           {label}
-          {arrow}
+          <span className={active ? 'sort-arrow' : 'sort-arrow idle'}>{arrow}</span>
         </button>
       </div>
     </th>
