@@ -101,7 +101,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | URL-01 | Phase 2 | Complete |
 | URL-02 | Phase 2 | Complete |
-| URL-03 | Phase 2 | Complete |
+| URL-03 | Phase 2 | Changed by owner: one global interval (D-033) |
 | URL-04 | Phase 1 | Complete |
 | CHK-01 | Phase 1 | Complete |
 | CHK-02 | Phase 1 | Complete |
@@ -122,7 +122,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DLVR-01 | Phase 1 | Complete |
 | DLVR-02 | Phase 2 | Complete |
 | DLVR-03 | Phase 2 | Complete |
-| EXTRA-01 | Stretch (quick) — Complete | Pending |
+| EXTRA-01 | Stretch (quick) — Complete | Built, then removed by owner (D-033) |
 | EXTRA-02 | Stretch (quick) — Complete | Pending |
 | EXTRA-03 | Stretch (quick) — Complete | Pending |
 | EXTRA-04 | Stretch (quick) — Built, then removed by owner (D-029) | Pending |

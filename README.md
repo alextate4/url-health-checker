@@ -1,12 +1,12 @@
 # URL Health Monitor
 
 A small URL / service health monitor, built as a timed take-home for Rosnet. A C# backend checks
-a list of URLs, each on its own schedule. It saves every result in SQLite. A React dashboard shows
+a list of URLs on one schedule that you set. It saves every result in SQLite. A React dashboard shows
 which URLs are healthy right now and how each one has behaved over a chosen time window.
 
 ![Dashboard](docs/dashboard.png)
 
-- **Decision log:** [`log.json`](log.json) holds every decision (D-001…D-032) with the
+- **Decision log:** [`log.json`](log.json) holds every decision (D-001…D-033) with the
   alternatives and tradeoffs, every edge case (EC-001…EC-032), and notes on how AI was used.
 - **Plain-English backend notes:** [`docs/CONCEPTS.md`](docs/CONCEPTS.md) explains each backend
   idea used here, with a JavaScript comparison.
@@ -29,12 +29,12 @@ creates `server/healthmonitor.db` and seeds four URLs, so you see every state at
 | Seed | Shows |
 |---|---|
 | `https://example.com` | healthy |
-| `https://github.com` | healthy, different interval |
+| `https://github.com` | healthy |
 | `https://github.com/this-page-should-not-exist-rosnet` | unhealthy with a status code (404) |
 | `https://unreachable.invalid` | unhealthy with no response and an error reason (DNS; `.invalid` can never resolve) |
 
-**Tests:** `dotnet test` (56 backend tests, ~1 s) and `npm --prefix web test` (9 frontend tests).
-Backend line coverage is **91%**: `dotnet test --collect "Code Coverage;Format=cobertura"`.
+**Tests:** `dotnet test` (55 backend tests, ~1 s) and `npm --prefix web test` (7 frontend tests).
+Backend line coverage is **92%**: `dotnet test --collect "Code Coverage;Format=cobertura"`.
 
 **Frontend work with hot reload:** run `dotnet run --project server` in one terminal and
 `npm --prefix web run dev` in another, then open the Vite address. `/api` is proxied to :5080.
@@ -48,8 +48,9 @@ the build step only runs when `server/wwwroot` is missing (EC-014).
 ## What I built
 
 **Checks**
-- One background loop (`BackgroundService` + `PeriodicTimer`, 5 s tick) finds every URL whose own
-  interval has passed and checks it with a `GET`. It stops reading after the headers, so page
+- One background loop (`BackgroundService` + `PeriodicTimer`, 5 s tick) finds every URL whose last
+  check is older than the **one global check interval** (default 30 s, set in the UI) and checks it
+  with a `GET`. It stops reading after the headers, so page
   bodies are never downloaded.
 - **Healthy = status 200–399 within the 10 s timeout.** 4xx/5xx, timeouts, DNS failures and
   refused connections are recorded as **unhealthy**. When there is no response, the reason is saved.
@@ -70,12 +71,12 @@ the build step only runs when `server/wwwroot` is missing (EC-014).
   **1h / 24h / 7d** window.
 - A strip of the 30 newest checks, colored by result, with a tooltip on each box.
 - The clock button opens a pop-up with that URL's **entire history**, sorted and paged.
-- Add a URL with its interval. Change the interval in place (it applies on the next tick, with no
-  restart). **Check now** (⚡) runs one check immediately. **Pause / play** a URL. **Remove** it with
+- Add a URL. **One "Check every N s" setting** in the toolbar sets how often every URL is checked; a
+  change applies on the next tick, with no restart. Each row's **refresh** button (↻) checks that
+  URL right now. **Remove** it with
   the trash can.
-- Two independent refreshes, both read-only (pausing is what stops checks): **each playing row reloads
-  itself** shortly after each of its own checks (its **Every** interval); paused rows don't. The
-  **whole table** auto-refreshes on an interval you set (default 30 s), and **Refresh** reloads it now.
+- **Auto-refresh** reloads the table at that same rate, so each reload can show new results; it can
+  be turned off, and **Refresh** reloads it now. One rate, one source (D-033).
 - Server-side **sorting** on every column with an arrow, and **paging** with 10 / 50 / 100 rows.
 - An **Archive** page lists every check ever saved: live and archived, removed URLs included. It
   has the same sorting and paging.
@@ -89,27 +90,25 @@ server. Every commit tells one step of the story (`git log --oneline`).
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/api/urls?window=1h\|24h\|7d&sort=&dir=&page=&pageSize=` | Dashboard rows: latest check + window summary + 30 newest checks |
-| POST | `/api/urls` `{url, intervalSeconds}` | Add a URL (201) |
-| PATCH | `/api/urls/{id}` `{intervalSeconds?, paused?}` | Re-time and/or pause/resume (204 / 404) |
+| POST | `/api/urls` `{url}` | Add a URL (201) |
 | POST | `/api/urls/{id}/check` | Check now: run one check and return it (200 / 404) |
 | DELETE | `/api/urls/{id}` | Soft delete (204 / 404) |
-| GET | `/api/urls/{id}?window=` | One dashboard row (a playing row reloads itself with this) |
 | GET | `/api/urls/{id}/checks?window=` | One URL's checks inside a window |
 | GET | `/api/checks?sort=&dir=&page=&pageSize=&urlId=` | Every check, live + archived, paged |
-| GET / PUT | `/api/settings` `{retentionDays}` | Read / change retention |
+| GET / PUT | `/api/settings` `{retentionDays?, checkIntervalSeconds?}` | Read / change retention and the one check interval |
 
 Bad input returns **400 with a reason**: URLs must be absolute http(s) and must not point to this
-machine or the local network (SSRF guard), intervals must be 10 s–1 day (`InputRules.cs`, D-026),
+machine or the local network (SSRF guard), the check interval must be 10 s–1 day (`InputRules.cs`, D-026),
 and unknown windows, sort keys, directions or page sizes are refused. A sort key is looked up in a
 fixed list, so client text never reaches the SQL (D-024).
 
 ### Data model (SQLite)
 
 ```
-urls                  (id, url, interval_seconds, created_at, deleted_at?, paused_at?)
+urls                  (id, url, created_at, deleted_at?)  -- plus an unused interval_seconds, see D-033
 check_results         (id, url_id, checked_at, status_code?, response_time_ms, healthy, error?)
 check_results_archive (same columns as check_results)
-settings              (key, value)           -- retention_days
+settings              (key, value)           -- retention_days, check_interval_seconds
 ```
 
 Times are ISO-8601 UTC text, which sorts correctly as text. "Last checked" is not stored on `urls`;
@@ -138,6 +137,15 @@ dashboard queries stay fast, which is the practical point of retention. The Arch
 shows everything. The cost is that the database only grows (EC-026). A real deployment would add a
 purge or export job for the archive.
 
+**One global check interval instead of per-URL intervals (D-033).** The brief asks for a check
+interval per URL, set when adding it and editable in the UI. I built that, then replaced it after
+using the app: a per-row interval plus per-row pause/play and per-row refresh timers made the
+table hard to reason about. Now one "Check every N s" setting drives every URL's checks *and* the
+table's auto-refresh, and each row has a refresh button to check it right now. The cost: one slow-
+to-change URL cannot be checked less often than the rest. The `interval_seconds` column is still in
+the table (written as 0, not read) so older database files keep working, since there are no
+migrations (D-005).
+
 ---
 
 ## Testing approach
@@ -158,28 +166,27 @@ own temporary SQLite file.
 | `Window_summary_counts_uptime_and_average` | Uptime % and the average (which skips no-response checks, D-019) |
 | `Retention_archives_old_results_without_losing_them` | Retention moves old rows out of the live table, and they are still listed |
 | `Soft_delete_hides_the_url_but_keeps_its_history` | Remove hides the URL; its checks stay and are marked removed |
-| `Pause_and_resume_flip_the_paused_flag` | Pause/resume sets the flag the scheduler reads |
 | `Duplicate_check_ignores_case_and_trailing_slash_but_not_removed_urls` | The duplicate rule (409) |
 | `All_checks_paging_returns_one_page_and_the_total` | Paging slice and total |
-| `InputRulesTests` (24 cases) | Public URLs accepted; malformed URLs and every SSRF target refused; 172.32.x (just outside a private range) allowed; interval bounds 10 s–1 day |
+| `InputRulesTests` (24 cases) | Public URLs accepted; malformed URLs and every SSRF target refused; 172.32.x (just outside a private range) allowed; check-interval bounds 10 s–1 day |
 
-| `CheckSchedulerTests` (3) | The real loop, started in-process: every due URL is checked and paused ones skipped; a recently checked URL is not re-checked; a URL that never answers does not hold up the others (CHK-05) |
+| `CheckSchedulerTests` (5) | The real loop, started in-process: every never-checked URL is checked; the one global interval decides what is due (20 s old: due at 10 s, not at 30 s); a recently checked URL is not re-checked; a URL that never answers does not hold up the others (CHK-05) |
 | `RetentionSweeperTests` | The real timer service archives results older than the stored setting at start |
-| `ApiTests` (15 cases) | The real app in memory (`WebApplicationFactory`, temp DB, background services off, fake network): page + sort, every 400 rule, add 201/409/400-with-reason, PATCH interval/pause, soft delete keeps history, check now, retention setting, one URL's window history |
+| `ApiTests` (13 cases) | The real app in memory (`WebApplicationFactory`, temp DB, background services off, fake network): page + sort, every 400 rule, add 201/409/400-with-reason, soft delete keeps history, check now, settings round-trip incl. the interval's 10 s minimum, one URL's window history |
 
-**Coverage (backend, lines):** 91% overall: `Database.cs` 98%, `Program.cs` 92%, `UrlChecker.cs`
-91%, `InputRules.cs` 89%, `CheckScheduler.cs` 80%, `RetentionSweeper.cs` 72%. What is left is mostly
+**Coverage (backend, lines):** 92% overall: `Database.cs` 98%, `Program.cs` 96%, `UrlChecker.cs`
+91%, `InputRules.cs` 89%, `CheckScheduler.cs` 79%, `RetentionSweeper.cs` 72%. What is left is mostly
 the timer loop after its first pass and error-logging branches.
 
 **Frontend (`web/src/logic.test.js`, Node's built-in test runner, no packages):** the UI's
 decisions live in `web/src/logic.js` and are tested directly: sort toggling and arrows, page count
-(never 0), row status (paused > pending > last result), a real 0% vs a missing value, and the
-tooltip for a check with no response, the table refresh interval, and when a playing row should reload itself.
+(never 0), row status (pending, then the last result), a real 0% vs a missing value, and the
+tooltip for a check with no response.
 
 **Each test can fail for a real reason.** I broke the code on purpose and watched the guarding test
 fail: changing `<= 399` to `< 399` fails the 399 case, disabling the window filter fails the
-history test, treating 0% as missing fails the frontend formatting test, ignoring pause or awaiting
-checks one at a time fails the scheduler tests, and removing the duplicate check fails the API test.
+history test, treating 0% as missing fails the frontend formatting test, ignoring the global interval or
+awaiting checks one at a time fails the scheduler tests, and removing the duplicate check fails the API test.
 (The first concurrency test passed against the broken loop because the hanging URL was last; that is
 how it was found and fixed.)
 
@@ -217,9 +224,10 @@ the scheduler's later ticks (tests run only its start-up pass), and the deferred
 ## What I cut, and what I'd do next
 
 **Cut or changed**
-- **Response-time sparkline (EXTRA-04): built, then removed.** Pause/resume (EXTRA-01), "check
-  now" (EXTRA-02), and the per-URL history view (EXTRA-03) are in. The sparkline was built and then
-  reverted after review: a moving line in every row was too much visual noise (D-029).
+- **Built, then removed after review:** the response-time sparkline (EXTRA-04; too much visual
+  noise, D-029) and pause/resume (EXTRA-01) together with per-URL intervals (replaced by one global
+  rate, D-033). "Check now" (EXTRA-02, now each row's refresh button) and the per-URL history view
+  (EXTRA-03) are in.
 - **Hard-delete retention:** replaced by archiving (above).
 - **Out of scope per the brief:** alerting, response-body assertions, retry/backoff, auth,
   multi-tenancy, containers, a design system, TypeScript, Postgres.
@@ -239,7 +247,7 @@ the scheduler's later ticks (tests run only its start-up pass), and the deferred
 
 This was built with Claude Code (Claude Opus) as a pair, using a lightweight plan → build → verify
 loop. AI use is meant to be visible:
-- Tests: 56 xUnit + 9 frontend (`node:test`).
+- Tests: 55 xUnit + 7 frontend (`node:test`).
 - Every commit carries a `Co-Authored-By: Claude` trailer.
 - Every decision in `log.json` has an `ai` block that says who suggested it and what I accepted,
   changed, or rejected.
@@ -247,13 +255,14 @@ loop. AI use is meant to be visible:
 
 **What I rejected or changed**
 - Claude recommended **TypeScript**. I rejected it for time and explainability (D-003).
-- Claude wanted to trim scope (per-URL intervals, the extras). I kept them, but moved the extras to a
-  stretch tier (D-008, D-012).
+- Claude wanted to trim scope (per-URL intervals, the extras). I kept them at first and moved the
+  extras to a stretch tier (D-008, D-012); after using the app I replaced per-URL intervals and
+  pause with one global rate myself (D-033).
 - Claude's planning workflow was eating the clock: about an hour before the first line of code. I
   cut it (D-015). Most work after Phase 1 was done directly in the session, with small commits.
 - I overrode "delete on retention" with a no-hard-delete rule. Claude pointed out the conflict
   with the brief first and gave me options; I chose archiving (D-023).
-- I directed the UI: soft delete, sorting/paging, icons, play/pause, the history modal, the layout,
+- I directed the UI: soft delete, sorting/paging, icons, the history modal, one refresh rate, the layout,
   and the colors. I tried a blue header and reverted it (D-024, D-025).
 
 **AI mistakes I caught or that were caught (all in `aiNotes`)**
@@ -280,10 +289,10 @@ server/            ASP.NET Core app (API, scheduler, retention, SQLite)
   Program.cs         endpoints, paging rules, DI setup
   Database.cs        schema, seeds, all SQL (Dapper)
   UrlChecker.cs      one check: GET, timing, healthy rule
-  CheckScheduler.cs  5 s loop, concurrency cap, pause
+  CheckScheduler.cs  5 s loop, global interval, concurrency cap
   RetentionSweeper.cs moves old results to the archive
 web/src/           React 18 UI (plain JS + CSS)
-tests/             xUnit tests (56); frontend tests are in web/src/logic.test.js
+tests/             xUnit tests (55); frontend tests are in web/src/logic.test.js
 docs/              CONCEPTS.md, KICKOFF_PROMPT.md, screenshot
 log.json           decisions, edge cases, AI notes, timebox
 .planning/         plan/state files from the AI workflow
@@ -291,7 +300,7 @@ log.json           decisions, edge cases, AI notes, timebox
 
 ## Time
 
-**Build time: 2h 18m 04s of the 3-hour cap.** Recorded in `log.json` → `timebox`, and checkable from
+**Build time: 2h 27m 14s of the 3-hour cap.** Recorded in `log.json` → `timebox`, and checkable from
 the commit timestamps (`TZ=UTC git log --date=iso-strict-local`):
 
 | Moment | UTC | Commit |
@@ -299,7 +308,7 @@ the commit timestamps (`TZ=UTC git log --date=iso-strict-local`):
 | Build clock starts (first line of app code) | 18:05:44 | `0937bda` at 18:06:00 |
 | Core complete (every v1 requirement + README) | 19:34:01 | `99a6f75` |
 | First wrap-up (clock stopped at 1h 52m 34s) | 19:58:18 | `e5efa1d` |
-| App changes after review (auto-refresh D-031, then independent refreshes D-032) | 20:17:25, 20:23:48 | `7a883c1`, `5d362bb` |
+| App changes after review (refresh redesigns D-031 → D-032 → D-033) | 20:17:25 → 20:32:58 | `7a883c1`, `5d362bb`, `855cfcf` |
 
 Planning before the clock (requirements, roadmap, process setup) is not counted, per the timebox
 rule. A fresh-clone check at the first wrap-up passed (clone → `dotnet run` → UI served in 6 s, all

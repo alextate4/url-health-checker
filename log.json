@@ -4,10 +4,10 @@
   "timebox": {
     "capHours": 3,
     "buildStartedAt": "2026-11-07T18:05:44Z",
-    "buildEndedAt": "2026-11-07T20:23:48Z",
+    "buildEndedAt": "2026-11-07T20:32:58Z",
     "notes": "Clock starts with the first line of application code. Planning and setup before that are logged separately below.",
     "result": {
-      "buildDuration": "2h 18m 04s of the 3h cap",
+      "buildDuration": "2h 27m 14s of the 3h cap",
       "howMeasured": "From the logged start (first line of app code) to the last commit that changed app or test code. All times are git commit timestamps in UTC, so anyone can check them with: TZ=UTC git log --date=iso-strict-local",
       "evidence": [
         {
@@ -33,11 +33,15 @@
         {
           "what": "Post-wrap-up app change: independent table/row refresh (D-032)",
           "when": "2026-11-07T20:23:48Z"
+        },
+        {
+          "what": "Post-wrap-up app change: one global check interval (D-033)",
+          "when": "2026-11-07T20:32:58Z"
         }
       ],
       "outsideTheClock": "Planning and setup before 18:05:44Z (requirements, roadmap, Phase 1 context, GSD process) are not build time, per the timebox note.",
       "finalCheck": "Fresh clone verified at wrap-up: no wwwroot/node_modules/db, one `dotnet run` built and served the UI in 6 s, 4 seeds showed healthy/404/DNS-failure correctly, 55 backend + 7 frontend tests passed, git tree stayed clean.",
-      "note": "The first wrap-up stopped the clock at 19:58:18Z (1h 52m 34s). The owner then asked for more app changes (D-031, D-032), so the clock was re-opened and the end moved to the last app commit. Still inside the 3h cap."
+      "note": "The first wrap-up stopped the clock at 19:58:18Z (1h 52m 34s). The owner then asked for more app changes (D-031, D-032, D-033), so the clock was re-opened and the end moved to the last app commit. Still inside the 3h cap."
     }
   },
   "decisions": [
@@ -247,7 +251,7 @@
         "changed": null,
         "rejected": null
       },
-      "status": "accepted"
+      "status": "amended by D-033 (one global check interval instead of per-URL)"
     },
     {
       "id": "D-009",
@@ -642,7 +646,7 @@
         "changed": null,
         "rejected": null
       },
-      "status": "amended by D-023 (DELETE is now a soft delete)"
+      "status": "amended by D-023 (soft delete) and D-033 (PATCH removed)"
     },
     {
       "id": "D-022",
@@ -774,7 +778,7 @@
         "changed": null,
         "rejected": "stop button"
       },
-      "status": "accepted"
+      "status": "amended by D-033 (play/pause removed; check-now is the row's refresh button)"
     },
     {
       "id": "D-026",
@@ -855,7 +859,7 @@
         "changed": null,
         "rejected": null
       },
-      "status": "accepted"
+      "status": "accepted (the button is now each row's refresh icon, D-033)"
     },
     {
       "id": "D-029",
@@ -944,7 +948,7 @@
         "changed": null,
         "rejected": "Claude's recommendation to leave it as is"
       },
-      "status": "superseded by D-032"
+      "status": "superseded by D-032, then D-033"
     },
     {
       "id": "D-032",
@@ -975,6 +979,37 @@
         "changed": "Row timer aimed just after each expected check instead of a fixed interval",
         "rejected": null
       },
+      "status": "superseded by D-033"
+    },
+    {
+      "id": "D-033",
+      "date": "2026-11-07",
+      "area": "scope",
+      "title": "One global check interval drives checks and auto-refresh; per-URL intervals and pause removed",
+      "decision": "A single setting, check_interval_seconds (settings table, default 30, 10 s..1 day via InputRules, PUT /api/settings {checkIntervalSeconds}), decides when every URL is due; the scheduler reads it each pass. The dashboard's Auto-refresh reloads the table at the same rate. Each row's refresh icon runs 'check now'. Removed: per-URL interval on add and edit, PATCH /api/urls/{id}, pause/resume (EXTRA-01) end to end, the single-row endpoint and per-row self-refresh (D-032). urls.interval_seconds stays in the schema (written as 0, not read) and older DBs keep an unused paused_at column, because there are no migrations (D-005).",
+      "alternatives": [
+        {
+          "option": "Keep per-URL intervals as the brief requires",
+          "whyNot": "Owner, after using the app: per-row intervals plus per-row pause/play and per-row refresh timers were hard to reason about; one rate is easier to use and to explain."
+        },
+        {
+          "option": "Global rate only for the UI refresh, keep per-URL server intervals hidden",
+          "whyNot": "Invisible stored values would be hard to explain; owner chose one rate for both."
+        },
+        {
+          "option": "Keep pause in the API without a button",
+          "whyNot": "Dead code to defend; owner chose full removal."
+        }
+      ],
+      "rationale": "One rate, one source: the table refreshes exactly as often as results can change, and a row's refresh button covers 'check this one now'.",
+      "tradeoffs": "Deviates from the brief's per-URL interval requirement (README says so). A URL cannot be checked more or less often than the others. Unused columns remain in the schema.",
+      "plain": "There is now one setting for how often all web addresses are checked. The page updates at the same speed. Each row has a button to check it right away.",
+      "ai": {
+        "suggestedBy": "Owner redesigned it; Claude flagged the conflict with the brief and asked what the rate controls, how far to remove pause, and what the row button does",
+        "accepted": "Server checks + table refresh share one rate; document the deviation; row button = check now; remove pause completely",
+        "changed": null,
+        "rejected": "Per-URL intervals (built earlier, D-008/D-021) and pause/resume (D-025)"
+      },
       "status": "accepted"
     }
   ],
@@ -995,7 +1030,7 @@
       "description": "A 1-second interval would hammer the target and flood the database. Needs a minimum.",
       "status": "fixed",
       "plain": "If you check too often, you send too much traffic. We need a smallest allowed time.",
-      "fixedNote": "InputRules.IntervalProblem: POST and PATCH refuse intervals outside 10 s..86400 s with a 400 and a reason."
+      "fixedNote": "InputRules.IntervalProblem: POST and PATCH refuse intervals outside 10 s..86400 s with a 400 and a reason. Since D-033 the rule applies to the one global check interval (PUT /api/settings)."
     },
     {
       "id": "EC-003",
@@ -1055,7 +1090,7 @@
       "description": "New interval should apply from the next due time without a restart.",
       "status": "fixed",
       "plain": "You change the time while a check runs. The new time must start on the next check.",
-      "fixedNote": "Handled by design (URL-03, D-021): the scheduler reads interval_seconds from the database on every 5 s pass, so a new interval applies from the next tick without a restart."
+      "fixedNote": "Handled by design (URL-03, D-021): the scheduler reads interval_seconds from the database on every 5 s pass, so a new interval applies from the next tick without a restart. Superseded by D-033: there is no per-URL interval; changing the global interval applies on the next tick."
     },
     {
       "id": "EC-010",
@@ -1309,6 +1344,10 @@
     {
       "date": "2026-11-07",
       "note": "While proving D-032, Claude's request counts were doubled because ASP.NET logs both 'Request starting' and 'Request finished' lines; this also doubled the D-031 numbers reported earlier (conclusions held). A 'row reloaded only once for 4 checks' result looked like a bug; temporary console logging showed the row worked and the table's own reload had delivered the newer check first. Headless Chrome's virtual time also skewed timing tests (page time runs ahead of the real server), so the final check ran in real time."
+    },
+    {
+      "date": "2026-11-07",
+      "note": "For D-033 Claude's scripted edit of api.js cut a range that also contained checkNow (the functions were not in the assumed order); the build failed, and Claude restored checkNow before finishing. A deliberate break (scheduler ignoring the global interval) made the new scheduler test fail as intended."
     }
   ]
 }
