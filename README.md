@@ -71,7 +71,7 @@ the build step only runs when `server/wwwroot` is missing (EC-014).
 - The clock button opens a pop-up with that URL's **entire history**, sorted and paged.
 - Add a URL with its interval. Change the interval in place (it applies on the next tick, with no
   restart). **Pause / play** a URL. **Remove** it with the trash can.
-- Refreshes every 5 s without a page reload.
+- Refreshes every 5 s without a page reload, plus a **Refresh** button to reload at once.
 - Server-side **sorting** on every column with an arrow, and **paging** with 10 / 50 / 100 rows.
 - An **Archive** page lists every check ever saved: live and archived, removed URLs included. It
   has the same sorting and paging.
