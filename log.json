@@ -346,6 +346,45 @@
         "rejected": null
       },
       "status": "accepted"
+    },
+    {
+      "id": "D-014",
+      "date": "2026-11-07",
+      "area": "architecture",
+      "title": "Phase 1 defaults: repo layout, data model, API, seeds, check behavior, dashboard",
+      "decision": "server/ + web/ + tests/ with one solution file. Vite builds into server/wwwroot (gitignored); an MSBuild target runs npm install/build when missing so a fresh-clone dotnet run works. Tables: urls(id, url, interval_seconds, created_at) and check_results(id, url_id, checked_at, status_code?, response_time_ms, healthy, error?), ISO UTC text times, last-checked derived from newest result. GET /api/urls returns each URL with its lastCheck or null. Seeds: example.com, github.com, a GitHub 404 page, unreachable.invalid. 5s tick, 10s timeout, GET with ResponseHeadersRead, follow redirects, sequential checks in Phase 1. Plain table with dot + word status.",
+      "alternatives": [
+        {
+          "option": "Commit the built UI into wwwroot",
+          "whyNot": "Noisy diffs and the UI can go stale."
+        },
+        {
+          "option": "Manual npm build step before dotnet run",
+          "whyNot": "Breaks the one-command promise (D-007)."
+        },
+        {
+          "option": "Store last_checked_at on the urls row",
+          "whyNot": "Two places to keep in sync; the newest result already has it."
+        },
+        {
+          "option": "HEAD requests",
+          "whyNot": "Some servers answer 405 to HEAD, which would show a false unhealthy."
+        },
+        {
+          "option": "httpstat.us or httpbin as the failing seed",
+          "whyNot": "Third-party test services are often down; .invalid can never resolve."
+        }
+      ],
+      "rationale": "Smallest version that meets the Phase 1 success criteria and keeps every piece easy to explain.",
+      "tradeoffs": "Owner did not weigh these one by one; any can be changed before planning. Fresh-clone build needs Node installed. No migrations, so schema changes mean deleting the local DB file.",
+      "plain": "The server code, the screen code, and the tests each get a folder. Starting the server also builds the screen the first time. We keep each check as its own row. The screen shows one table row per web address.",
+      "ai": {
+        "suggestedBy": "Claude (all defaults)",
+        "accepted": "all — owner skipped the discussion step and said build it",
+        "changed": null,
+        "rejected": null
+      },
+      "status": "accepted"
     }
   ],
   "edgeCases": [
@@ -450,6 +489,10 @@
     {
       "date": "2026-11-07",
       "note": "Claude flagged that adding all four extras on top of three configurable intervals risks the 3-hour cap. Kept them, but moved them to a stretch tier built after the core. See D-012."
+    },
+    {
+      "date": "2026-11-07",
+      "note": "Skipped the Phase 1 discuss step. Claude picked the defaults for layout, data model, API, seeds, check behavior, and dashboard (D-014). These are AI decisions I accepted without debate; I review them during planning."
     }
   ]
 }
