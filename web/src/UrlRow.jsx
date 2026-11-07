@@ -1,5 +1,6 @@
 export default function UrlRow({ url }) {
   const check = url.lastCheck
+  const summary = url.summary
 
   // The word next to the dot keeps the status readable without color.
   let status = { word: 'Pending', className: 'pending' }
@@ -19,6 +20,11 @@ export default function UrlRow({ url }) {
       <td>{check?.statusCode ?? '—'}</td>
       <td>{check ? `${check.responseTimeMs} ms` : '—'}</td>
       <td>{check ? new Date(check.checkedAt).toLocaleTimeString() : '—'}</td>
+      {/* "=== null", not "||": a real 0% must show as 0%. */}
+      <td title={`${summary.checkCount} checks`}>
+        {summary.uptimePercent === null ? '—' : `${summary.uptimePercent}%`}
+      </td>
+      <td>{summary.avgResponseTimeMs === null ? '—' : `${summary.avgResponseTimeMs} ms`}</td>
       <td>{check?.error}</td>
     </tr>
   )
