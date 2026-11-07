@@ -6,7 +6,7 @@ which URLs are healthy right now and how each one has behaved over a chosen time
 
 ![Dashboard](docs/dashboard.png)
 
-- **Decision log:** [`log.json`](log.json) holds every decision (D-001…D-031) with the
+- **Decision log:** [`log.json`](log.json) holds every decision (D-001…D-032) with the
   alternatives and tradeoffs, every edge case (EC-001…EC-032), and notes on how AI was used.
 - **Plain-English backend notes:** [`docs/CONCEPTS.md`](docs/CONCEPTS.md) explains each backend
   idea used here, with a JavaScript comparison.
@@ -33,7 +33,7 @@ creates `server/healthmonitor.db` and seeds four URLs, so you see every state at
 | `https://github.com/this-page-should-not-exist-rosnet` | unhealthy with a status code (404) |
 | `https://unreachable.invalid` | unhealthy with no response and an error reason (DNS; `.invalid` can never resolve) |
 
-**Tests:** `dotnet test` (55 backend tests, ~1 s) and `npm --prefix web test` (8 frontend tests).
+**Tests:** `dotnet test` (56 backend tests, ~1 s) and `npm --prefix web test` (9 frontend tests).
 Backend line coverage is **91%**: `dotnet test --collect "Code Coverage;Format=cobertura"`.
 
 **Frontend work with hot reload:** run `dotnet run --project server` in one terminal and
@@ -73,8 +73,9 @@ the build step only runs when `server/wwwroot` is missing (EC-014).
 - Add a URL with its interval. Change the interval in place (it applies on the next tick, with no
   restart). **Check now** (⚡) runs one check immediately. **Pause / play** a URL. **Remove** it with
   the trash can.
-- Refreshes every 5 s without a page reload, plus a **Refresh** button. An **Auto-refresh** checkbox turns
-  polling off, and it stops by itself while every URL is paused (the poll only reads; pausing is what stops checks).
+- Two independent refreshes, both read-only (pausing is what stops checks): **each playing row reloads
+  itself** shortly after each of its own checks (its **Every** interval); paused rows don't. The
+  **whole table** auto-refreshes on an interval you set (default 30 s), and **Refresh** reloads it now.
 - Server-side **sorting** on every column with an arrow, and **paging** with 10 / 50 / 100 rows.
 - An **Archive** page lists every check ever saved: live and archived, removed URLs included. It
   has the same sorting and paging.
@@ -92,6 +93,7 @@ server. Every commit tells one step of the story (`git log --oneline`).
 | PATCH | `/api/urls/{id}` `{intervalSeconds?, paused?}` | Re-time and/or pause/resume (204 / 404) |
 | POST | `/api/urls/{id}/check` | Check now: run one check and return it (200 / 404) |
 | DELETE | `/api/urls/{id}` | Soft delete (204 / 404) |
+| GET | `/api/urls/{id}?window=` | One dashboard row (a playing row reloads itself with this) |
 | GET | `/api/urls/{id}/checks?window=` | One URL's checks inside a window |
 | GET | `/api/checks?sort=&dir=&page=&pageSize=&urlId=` | Every check, live + archived, paged |
 | GET / PUT | `/api/settings` `{retentionDays}` | Read / change retention |
@@ -163,7 +165,7 @@ own temporary SQLite file.
 
 | `CheckSchedulerTests` (3) | The real loop, started in-process: every due URL is checked and paused ones skipped; a recently checked URL is not re-checked; a URL that never answers does not hold up the others (CHK-05) |
 | `RetentionSweeperTests` | The real timer service archives results older than the stored setting at start |
-| `ApiTests` (14 cases) | The real app in memory (`WebApplicationFactory`, temp DB, background services off, fake network): page + sort, every 400 rule, add 201/409/400-with-reason, PATCH interval/pause, soft delete keeps history, check now, retention setting, one URL's window history |
+| `ApiTests` (15 cases) | The real app in memory (`WebApplicationFactory`, temp DB, background services off, fake network): page + sort, every 400 rule, add 201/409/400-with-reason, PATCH interval/pause, soft delete keeps history, check now, retention setting, one URL's window history |
 
 **Coverage (backend, lines):** 91% overall: `Database.cs` 98%, `Program.cs` 92%, `UrlChecker.cs`
 91%, `InputRules.cs` 89%, `CheckScheduler.cs` 80%, `RetentionSweeper.cs` 72%. What is left is mostly
@@ -172,7 +174,7 @@ the timer loop after its first pass and error-logging branches.
 **Frontend (`web/src/logic.test.js`, Node's built-in test runner, no packages):** the UI's
 decisions live in `web/src/logic.js` and are tested directly: sort toggling and arrows, page count
 (never 0), row status (paused > pending > last result), a real 0% vs a missing value, and the
-tooltip for a check with no response, and when the dashboard should keep polling.
+tooltip for a check with no response, the table refresh interval, and when a playing row should reload itself.
 
 **Each test can fail for a real reason.** I broke the code on purpose and watched the guarding test
 fail: changing `<= 399` to `< 399` fails the 399 case, disabling the window filter fails the
@@ -237,7 +239,7 @@ the scheduler's later ticks (tests run only its start-up pass), and the deferred
 
 This was built with Claude Code (Claude Opus) as a pair, using a lightweight plan → build → verify
 loop. AI use is meant to be visible:
-- Tests: 55 xUnit + 8 frontend (`node:test`).
+- Tests: 56 xUnit + 9 frontend (`node:test`).
 - Every commit carries a `Co-Authored-By: Claude` trailer.
 - Every decision in `log.json` has an `ai` block that says who suggested it and what I accepted,
   changed, or rejected.
@@ -281,7 +283,7 @@ server/            ASP.NET Core app (API, scheduler, retention, SQLite)
   CheckScheduler.cs  5 s loop, concurrency cap, pause
   RetentionSweeper.cs moves old results to the archive
 web/src/           React 18 UI (plain JS + CSS)
-tests/             xUnit tests (55); frontend tests are in web/src/logic.test.js
+tests/             xUnit tests (56); frontend tests are in web/src/logic.test.js
 docs/              CONCEPTS.md, KICKOFF_PROMPT.md, screenshot
 log.json           decisions, edge cases, AI notes, timebox
 .planning/         plan/state files from the AI workflow
@@ -289,7 +291,7 @@ log.json           decisions, edge cases, AI notes, timebox
 
 ## Time
 
-**Build time: 2h 11m 41s of the 3-hour cap.** Recorded in `log.json` → `timebox`, and checkable from
+**Build time: 2h 18m 04s of the 3-hour cap.** Recorded in `log.json` → `timebox`, and checkable from
 the commit timestamps (`TZ=UTC git log --date=iso-strict-local`):
 
 | Moment | UTC | Commit |
@@ -297,7 +299,7 @@ the commit timestamps (`TZ=UTC git log --date=iso-strict-local`):
 | Build clock starts (first line of app code) | 18:05:44 | `0937bda` at 18:06:00 |
 | Core complete (every v1 requirement + README) | 19:34:01 | `99a6f75` |
 | First wrap-up (clock stopped at 1h 52m 34s) | 19:58:18 | `e5efa1d` |
-| One more app change after review (auto-refresh, D-031) | 20:17:25 | `7a883c1` |
+| App changes after review (auto-refresh D-031, then independent refreshes D-032) | 20:17:25, 20:23:48 | `7a883c1`, last app commit |
 
 Planning before the clock (requirements, roadmap, process setup) is not counted, per the timebox
 rule. A fresh-clone check at the first wrap-up passed (clone → `dotnet run` → UI served in 6 s, all

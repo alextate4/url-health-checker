@@ -4,10 +4,10 @@
   "timebox": {
     "capHours": 3,
     "buildStartedAt": "2026-11-07T18:05:44Z",
-    "buildEndedAt": "2026-11-07T20:17:25Z",
+    "buildEndedAt": "2026-11-07T20:23:48Z",
     "notes": "Clock starts with the first line of application code. Planning and setup before that are logged separately below.",
     "result": {
-      "buildDuration": "2h 11m 41s of the 3h cap",
+      "buildDuration": "2h 18m 04s of the 3h cap",
       "howMeasured": "From the logged start (first line of app code) to the last commit that changed app or test code. All times are git commit timestamps in UTC, so anyone can check them with: TZ=UTC git log --date=iso-strict-local",
       "evidence": [
         {
@@ -29,11 +29,15 @@
         {
           "what": "Post-wrap-up app change 7a883c1 (auto-refresh toggle, owner request after the pause investigation)",
           "when": "2026-11-07T20:17:25Z"
+        },
+        {
+          "what": "Post-wrap-up app change: independent table/row refresh (D-032)",
+          "when": "2026-11-07T20:23:48Z"
         }
       ],
       "outsideTheClock": "Planning and setup before 18:05:44Z (requirements, roadmap, Phase 1 context, GSD process) are not build time, per the timebox note.",
       "finalCheck": "Fresh clone verified at wrap-up: no wwwroot/node_modules/db, one `dotnet run` built and served the UI in 6 s, 4 seeds showed healthy/404/DNS-failure correctly, 55 backend + 7 frontend tests passed, git tree stayed clean.",
-      "note": "The first wrap-up stopped the clock at 19:58:18Z (1h 52m 34s). The owner then asked for one more app change (D-031), so the clock was re-opened and the end moved to that commit. Still inside the 3h cap."
+      "note": "The first wrap-up stopped the clock at 19:58:18Z (1h 52m 34s). The owner then asked for more app changes (D-031, D-032), so the clock was re-opened and the end moved to the last app commit. Still inside the 3h cap."
     }
   },
   "decisions": [
@@ -940,6 +944,37 @@
         "changed": null,
         "rejected": "Claude's recommendation to leave it as is"
       },
+      "status": "superseded by D-032"
+    },
+    {
+      "id": "D-032",
+      "date": "2026-11-07",
+      "area": "frontend",
+      "title": "Two independent refreshes: table auto-refresh with a user interval, and each playing row on its own Every interval",
+      "decision": "Table: an Auto-refresh checkbox plus a seconds box (default 30, minimum 5, logic.tableRefreshSeconds) reloads the whole table, independent of play/pause. Rows: each row keeps its own copy of its data; while not paused it reloads itself through GET /api/urls/{id} at last check + Every + 6 s (logic.rowRefreshDelayMs; 6 s covers the 5 s scheduler tick and the check time; minimum 3 s when a result is late). A table reload that brings newer data re-schedules the row. Paused rows never self-reload.",
+      "alternatives": [
+        {
+          "option": "D-031: stop the table poll when every URL is paused",
+          "whyNot": "Owner: the table refresh and the rows should be independent; the table needs its own user interval."
+        },
+        {
+          "option": "Row timer every Every seconds from page load",
+          "whyNot": "Not aligned to the server's checks, so a row could reload just before its check and show the result almost a full interval late."
+        },
+        {
+          "option": "Server push (SSE/WebSocket) when a check is saved",
+          "whyNot": "Best long-term answer, but a new transport and more code than the remaining time justified."
+        }
+      ],
+      "rationale": "Matches the owner's model: Every and play/pause control a row; the table setting controls the table.",
+      "tradeoffs": "More requests than a single poll when many rows play with short intervals (one per row per check). A row shows a new result up to ~6 s after it is saved. Row reload errors are silent; the next table reload shows the true state.",
+      "plain": "Each playing row updates itself on its own timer, set by its Every box. Paused rows wait. The whole table also updates on a timer that you choose.",
+      "ai": {
+        "suggestedBy": "Owner designed it; Claude added aligning the row timer to the server's check times",
+        "accepted": "Built as designed",
+        "changed": "Row timer aimed just after each expected check instead of a fixed interval",
+        "rejected": null
+      },
       "status": "accepted"
     }
   ],
@@ -1270,6 +1305,10 @@
     {
       "date": "2026-11-07",
       "note": "Owner reported pause 'not working'. Claude checked the database first: zero checks had been saved after any pause, so the scheduler was correct; what kept running was the dashboard's read-only 5 s poll seen in DevTools. Claude explained the difference instead of 'fixing' working code, then built the owner's chosen change. Two test slips while proving it: an env var name with dots broke the shell command (no server started, so 0 requests), and a first 'all paused' run was wrong because the owner had resumed one URL and added another in the meantime; a controlled DB copy fixed both."
+    },
+    {
+      "date": "2026-11-07",
+      "note": "While proving D-032, Claude's request counts were doubled because ASP.NET logs both 'Request starting' and 'Request finished' lines; this also doubled the D-031 numbers reported earlier (conclusions held). A 'row reloaded only once for 4 checks' result looked like a bug; temporary console logging showed the row worked and the table's own reload had delivered the newer check first. Headless Chrome's virtual time also skewed timing tests (page time runs ahead of the real server), so the final check ran in real time."
     }
   ]
 }
