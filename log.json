@@ -4,10 +4,10 @@
   "timebox": {
     "capHours": 3,
     "buildStartedAt": "2026-11-07T18:05:44Z",
-    "buildEndedAt": "2026-11-07T20:32:58Z",
+    "buildEndedAt": "2026-11-07T20:35:13Z",
     "notes": "Clock starts with the first line of application code. Planning and setup before that are logged separately below.",
     "result": {
-      "buildDuration": "2h 27m 14s of the 3h cap",
+      "buildDuration": "2h 29m 29s of the 3h cap",
       "howMeasured": "From the logged start (first line of app code) to the last commit that changed app or test code. All times are git commit timestamps in UTC, so anyone can check them with: TZ=UTC git log --date=iso-strict-local",
       "evidence": [
         {
@@ -37,6 +37,10 @@
         {
           "what": "Post-wrap-up app change: one global check interval (D-033)",
           "when": "2026-11-07T20:32:58Z"
+        },
+        {
+          "what": "Check-every default 60 s and 10 s floor (owner request)",
+          "when": "2026-11-07T20:35:13Z"
         }
       ],
       "outsideTheClock": "Planning and setup before 18:05:44Z (requirements, roadmap, Phase 1 context, GSD process) are not build time, per the timebox note.",
@@ -986,7 +990,7 @@
       "date": "2026-11-07",
       "area": "scope",
       "title": "One global check interval drives checks and auto-refresh; per-URL intervals and pause removed",
-      "decision": "A single setting, check_interval_seconds (settings table, default 30, 10 s..1 day via InputRules, PUT /api/settings {checkIntervalSeconds}), decides when every URL is due; the scheduler reads it each pass. The dashboard's Auto-refresh reloads the table at the same rate. Each row's refresh icon runs 'check now'. Removed: per-URL interval on add and edit, PATCH /api/urls/{id}, pause/resume (EXTRA-01) end to end, the single-row endpoint and per-row self-refresh (D-032). urls.interval_seconds stays in the schema (written as 0, not read) and older DBs keep an unused paused_at column, because there are no migrations (D-005).",
+      "decision": "A single setting, check_interval_seconds (settings table, default 60 s, 10 s..1 day via InputRules, PUT /api/settings {checkIntervalSeconds}), decides when every URL is due; the scheduler reads it each pass. The dashboard's Auto-refresh reloads the table at the same rate. Each row's refresh icon runs 'check now'. Removed: per-URL interval on add and edit, PATCH /api/urls/{id}, pause/resume (EXTRA-01) end to end, the single-row endpoint and per-row self-refresh (D-032). urls.interval_seconds stays in the schema (written as 0, not read) and older DBs keep an unused paused_at column, because there are no migrations (D-005). The value is also floored to 10 s when read, so a value edited straight into the database cannot make the scheduler run faster (owner: default 60 s, never below 10 s).",
       "alternatives": [
         {
           "option": "Keep per-URL intervals as the brief requires",

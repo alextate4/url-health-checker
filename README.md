@@ -33,7 +33,7 @@ creates `server/healthmonitor.db` and seeds four URLs, so you see every state at
 | `https://github.com/this-page-should-not-exist-rosnet` | unhealthy with a status code (404) |
 | `https://unreachable.invalid` | unhealthy with no response and an error reason (DNS; `.invalid` can never resolve) |
 
-**Tests:** `dotnet test` (55 backend tests, ~1 s) and `npm --prefix web test` (7 frontend tests).
+**Tests:** `dotnet test` (56 backend tests, ~1 s) and `npm --prefix web test` (7 frontend tests).
 Backend line coverage is **92%**: `dotnet test --collect "Code Coverage;Format=cobertura"`.
 
 **Frontend work with hot reload:** run `dotnet run --project server` in one terminal and
@@ -49,7 +49,7 @@ the build step only runs when `server/wwwroot` is missing (EC-014).
 
 **Checks**
 - One background loop (`BackgroundService` + `PeriodicTimer`, 5 s tick) finds every URL whose last
-  check is older than the **one global check interval** (default 30 s, set in the UI) and checks it
+  check is older than the **one global check interval** (default 60 s, never below 10 s, set in the UI) and checks it
   with a `GET`. It stops reading after the headers, so page
   bodies are never downloaded.
 - **Healthy = status 200–399 within the 10 s timeout.** 4xx/5xx, timeouts, DNS failures and
@@ -167,6 +167,7 @@ own temporary SQLite file.
 | `Retention_archives_old_results_without_losing_them` | Retention moves old rows out of the live table, and they are still listed |
 | `Soft_delete_hides_the_url_but_keeps_its_history` | Remove hides the URL; its checks stay and are marked removed |
 | `Duplicate_check_ignores_case_and_trailing_slash_but_not_removed_urls` | The duplicate rule (409) |
+| `Check_interval_defaults_to_60_and_never_reads_below_10` | The one rate's default, and a floor even for a value edited straight into the DB |
 | `All_checks_paging_returns_one_page_and_the_total` | Paging slice and total |
 | `InputRulesTests` (24 cases) | Public URLs accepted; malformed URLs and every SSRF target refused; 172.32.x (just outside a private range) allowed; check-interval bounds 10 s–1 day |
 
@@ -247,7 +248,7 @@ the scheduler's later ticks (tests run only its start-up pass), and the deferred
 
 This was built with Claude Code (Claude Opus) as a pair, using a lightweight plan → build → verify
 loop. AI use is meant to be visible:
-- Tests: 55 xUnit + 7 frontend (`node:test`).
+- Tests: 56 xUnit + 7 frontend (`node:test`).
 - Every commit carries a `Co-Authored-By: Claude` trailer.
 - Every decision in `log.json` has an `ai` block that says who suggested it and what I accepted,
   changed, or rejected.
@@ -292,7 +293,7 @@ server/            ASP.NET Core app (API, scheduler, retention, SQLite)
   CheckScheduler.cs  5 s loop, global interval, concurrency cap
   RetentionSweeper.cs moves old results to the archive
 web/src/           React 18 UI (plain JS + CSS)
-tests/             xUnit tests (55); frontend tests are in web/src/logic.test.js
+tests/             xUnit tests (56); frontend tests are in web/src/logic.test.js
 docs/              CONCEPTS.md, KICKOFF_PROMPT.md, screenshot
 log.json           decisions, edge cases, AI notes, timebox
 .planning/         plan/state files from the AI workflow
@@ -300,7 +301,7 @@ log.json           decisions, edge cases, AI notes, timebox
 
 ## Time
 
-**Build time: 2h 27m 14s of the 3-hour cap.** Recorded in `log.json` → `timebox`, and checkable from
+**Build time: 2h 29m 29s of the 3-hour cap.** Recorded in `log.json` → `timebox`, and checkable from
 the commit timestamps (`TZ=UTC git log --date=iso-strict-local`):
 
 | Moment | UTC | Commit |
@@ -308,7 +309,7 @@ the commit timestamps (`TZ=UTC git log --date=iso-strict-local`):
 | Build clock starts (first line of app code) | 18:05:44 | `0937bda` at 18:06:00 |
 | Core complete (every v1 requirement + README) | 19:34:01 | `99a6f75` |
 | First wrap-up (clock stopped at 1h 52m 34s) | 19:58:18 | `e5efa1d` |
-| App changes after review (refresh redesigns D-031 → D-032 → D-033) | 20:17:25 → 20:32:58 | `7a883c1`, `5d362bb`, `855cfcf` |
+| App changes after review (refresh redesigns D-031 → D-032 → D-033) | 20:17:25 → 20:35:13 | `7a883c1`, `5d362bb`, `855cfcf` |
 
 Planning before the clock (requirements, roadmap, process setup) is not counted, per the timebox
 rule. A fresh-clone check at the first wrap-up passed (clone → `dotnet run` → UI served in 6 s, all
