@@ -4,6 +4,7 @@ import AddUrlForm from './AddUrlForm.jsx'
 import RetentionSetting from './RetentionSetting.jsx'
 import { SortHeader, PlainHeader, Pager } from './TableControls.jsx'
 import { query } from './api.js'
+import { RefreshIcon } from './icons.jsx'
 
 const WINDOWS = ['1h', '24h', '7d']
 
@@ -76,6 +77,10 @@ export default function Dashboard({ onError }) {
               {w}
             </button>
           ))}
+          {/* The table already reloads every 5 s; this is for "show me the latest right now". */}
+          <button type="button" className="secondary refresh" onClick={refresh}>
+            <RefreshIcon /> Refresh
+          </button>
         </div>
         <RetentionSetting onError={onError} />
       </div>

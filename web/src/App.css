@@ -389,3 +389,25 @@ td.error-cell {
 .interval input {
   width: 52px;
 }
+
+/* Outlined button in the brand color, for secondary actions like Refresh. */
+button.secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  font-weight: 600;
+  color: var(--brand-dark);
+  background: #fff;
+  border: 1px solid var(--brand);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button.secondary:hover {
+  background: var(--header-bg);
+}
+
+.window-picker .refresh {
+  margin-left: 12px;
+}

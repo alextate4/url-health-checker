@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { SortHeader, PlainHeader, Pager } from './TableControls.jsx'
 import { query } from './api.js'
+import { RefreshIcon } from './icons.jsx'
 
 // Every result ever saved: live and archived, for every URL, removed ones included (D-023).
 // Not polled: new rows would shift the pages under the user. The Refresh button reloads on demand.
@@ -49,8 +50,8 @@ export default function AllChecks({ onError, urlId }) {
             ? 'Every check for this URL, newest first.'
             : 'Every check ever saved, including archived results and removed URLs (marked "removed").'}
         </p>
-        <button type="button" onClick={() => setVersion((v) => v + 1)}>
-          Refresh
+        <button type="button" className="secondary" onClick={() => setVersion((v) => v + 1)}>
+          <RefreshIcon /> Refresh
         </button>
       </div>
       {data === null ? (
