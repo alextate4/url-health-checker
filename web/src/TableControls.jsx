@@ -25,6 +25,15 @@ export function SortHeader({ label, sortKey, sort, onSort }) {
   )
 }
 
+// A header cell that does not sort, but can still be resized like the others.
+export function PlainHeader({ label }) {
+  return (
+    <th>
+      <div className="resizable">{label}</div>
+    </th>
+  )
+}
+
 export const PAGE_SIZES = [10, 50, 100]
 
 export function Pager({ total, page, pageSize, onPage, onPageSize }) {

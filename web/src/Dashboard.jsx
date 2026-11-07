@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import UrlRow from './UrlRow.jsx'
 import AddUrlForm from './AddUrlForm.jsx'
 import RetentionSetting from './RetentionSetting.jsx'
-import { SortHeader, Pager } from './TableControls.jsx'
+import { SortHeader, PlainHeader, Pager } from './TableControls.jsx'
 import { query } from './api.js'
 
 const WINDOWS = ['1h', '24h', '7d']
@@ -94,9 +94,9 @@ export default function Dashboard({ onError }) {
                 {header('Last checked', 'lastChecked')}
                 {header(`Uptime (${timeWindow})`, 'uptime')}
                 {header(`Avg response (${timeWindow})`, 'avg')}
-                <th>Recent checks</th>
-                <th>Error</th>
-                <th>Actions</th>
+                <PlainHeader label="Recent checks" />
+                <PlainHeader label="Error" />
+                <PlainHeader label="Actions" />
               </tr>
             </thead>
             <tbody>

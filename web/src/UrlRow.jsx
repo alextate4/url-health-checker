@@ -81,18 +81,7 @@ export default function UrlRow({ url, onChanged, onError }) {
       </td>
       <td>{url.url}</td>
       <td>
-        <div className="every">
-          <button
-            type="button"
-            className="icon"
-            onClick={handlePlayPause}
-            aria-label={url.paused ? `Resume checking ${url.url}` : `Pause checking ${url.url}`}
-            title={url.paused ? 'Resume' : 'Pause'}
-          >
-            {url.paused ? <PlayIcon /> : <PauseIcon />}
-          </button>
-          <IntervalEditor url={url} onChanged={onChanged} onError={onError} />
-        </div>
+        <IntervalEditor url={url} onChanged={onChanged} onError={onError} />
       </td>
       <td>{check?.statusCode ?? '—'}</td>
       <td>{check ? `${check.responseTimeMs} ms` : '—'}</td>
@@ -127,15 +116,26 @@ export default function UrlRow({ url, onChanged, onError }) {
       </td>
       <td>{check?.error}</td>
       <td>
-        <button
-          type="button"
-          className="icon remove"
-          onClick={handleRemove}
-          aria-label={`Remove ${url.url}`}
-          title="Remove (history is kept)"
-        >
-          <TrashIcon />
-        </button>
+        <div className="actions">
+          <button
+            type="button"
+            className="icon"
+            onClick={handlePlayPause}
+            aria-label={url.paused ? `Resume checking ${url.url}` : `Pause checking ${url.url}`}
+            title={url.paused ? 'Resume' : 'Pause'}
+          >
+            {url.paused ? <PlayIcon /> : <PauseIcon />}
+          </button>
+          <button
+            type="button"
+            className="icon"
+            onClick={handleRemove}
+            aria-label={`Remove ${url.url}`}
+            title="Remove (history is kept)"
+          >
+            <TrashIcon />
+          </button>
+        </div>
       </td>
     </tr>
   )

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { SortHeader, Pager } from './TableControls.jsx'
+import { SortHeader, PlainHeader, Pager } from './TableControls.jsx'
 import { query } from './api.js'
 
 // Every result ever saved: live and archived, for every URL, removed ones included (D-023).
@@ -47,7 +47,7 @@ export default function AllChecks({ onError, urlId }) {
         <p className="hint">
           {urlId
             ? 'Every check for this URL, newest first.'
-            : 'Every check ever saved. Archived results and removed URLs are kept and marked.'}
+            : 'Every check ever saved, including archived results and removed URLs (marked "removed").'}
         </p>
         <button type="button" onClick={() => setVersion((v) => v + 1)}>
           Refresh
@@ -61,12 +61,12 @@ export default function AllChecks({ onError, urlId }) {
             <thead>
               <tr>
                 {header('Checked at', 'checkedAt')}
-                {header('URL', 'url')}
+                {/* In the history modal the URL is already in the title, so the column is left out. */}
+                {!urlId && header('URL', 'url')}
                 {header('Result', 'healthy')}
                 {header('Code', 'statusCode')}
                 {header('Response time', 'responseTimeMs')}
-                <th>Error</th>
-                {header('Stored in', 'archived')}
+                <PlainHeader label="Error" />
               </tr>
             </thead>
             <tbody>
@@ -75,10 +75,12 @@ export default function AllChecks({ onError, urlId }) {
                   <td>
                     <div className="resizable-row">{new Date(c.checkedAt).toLocaleString()}</div>
                   </td>
-                  <td>
-                    {c.url}
-                    {c.urlRemoved && <span className="tag">removed</span>}
-                  </td>
+                  {!urlId && (
+                    <td>
+                      {c.url}
+                      {c.urlRemoved && <span className="tag">removed</span>}
+                    </td>
+                  )}
                   <td>
                     <span className={`dot ${c.healthy ? 'healthy' : 'unhealthy'}`}></span>
                     {c.healthy ? 'Healthy' : 'Unhealthy'}
@@ -86,7 +88,6 @@ export default function AllChecks({ onError, urlId }) {
                   <td>{c.statusCode ?? '—'}</td>
                   <td>{c.responseTimeMs} ms</td>
                   <td>{c.error}</td>
-                  <td>{c.archived ? 'Archive' : 'Live'}</td>
                 </tr>
               ))}
             </tbody>

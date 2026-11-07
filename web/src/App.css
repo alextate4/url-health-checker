@@ -159,18 +159,18 @@ button.icon {
   cursor: pointer;
 }
 
+/* Icons inside the primary button and the modal close button follow the same dark green. */
+.modal-header button {
+  color: var(--brand-dark);
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+}
+
 button.icon:hover {
   background: var(--header-bg);
   border-color: var(--header-border);
-}
-
-button.icon.remove {
-  color: #d64545;
-}
-
-button.icon.remove:hover {
-  background: #fde2e2;
-  border-color: #f5b5b5;
 }
 
 button.primary {
@@ -191,7 +191,7 @@ button.primary:hover {
   background: var(--brand-dark);
 }
 
-.every,
+.actions,
 .recent {
   display: flex;
   align-items: center;
