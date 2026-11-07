@@ -12,7 +12,11 @@ builder.Services.AddSingleton(new Database(connection.ToString()));
 
 // One shared, named HttpClient. The timeout comes from appsettings.json, not from the UI.
 builder.Services.AddHttpClient("checker", client =>
-    client.Timeout = TimeSpan.FromSeconds(builder.Configuration.GetValue<int>("Monitor:RequestTimeoutSeconds")));
+{
+    client.Timeout = TimeSpan.FromSeconds(builder.Configuration.GetValue<int>("Monitor:RequestTimeoutSeconds"));
+    // Some sites (e.g. Wikipedia) answer 403 to requests with no User-Agent, which would look like an outage (EC-022).
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("RosnetUrlHealthMonitor/1.0");
+});
 
 builder.Services.AddHostedService<CheckScheduler>();
 builder.Services.AddHostedService<RetentionSweeper>();
@@ -108,6 +112,11 @@ app.MapPost("/api/urls", async (NewUrl body, Database db) =>
     if (problem is not null)
     {
         return Results.BadRequest(new { error = problem });
+    }
+
+    if (await db.LiveUrlExistsAsync(body.Url))
+    {
+        return Results.Conflict(new { error = "this URL is already being monitored" });
     }
 
     var id = await db.AddUrlAsync(body.Url, body.IntervalSeconds);

@@ -249,6 +249,17 @@ public class Database
         });
     }
 
+    // Duplicate check (EC-004): case and a trailing slash do not make a different URL.
+    // Removed URLs do not count, so a removed URL can be added again.
+    public async Task<bool> LiveUrlExistsAsync(string url)
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        var count = await connection.ExecuteScalarAsync<long>(
+            "SELECT COUNT(*) FROM urls WHERE deleted_at IS NULL AND lower(rtrim(url, '/')) = @Normalized",
+            new { Normalized = url.TrimEnd('/').ToLowerInvariant() });
+        return count > 0;
+    }
+
     // Returns the new id. The scheduler sees a URL with no checks as due, so it is checked on the next tick.
     public async Task<long> AddUrlAsync(string url, int intervalSeconds)
     {

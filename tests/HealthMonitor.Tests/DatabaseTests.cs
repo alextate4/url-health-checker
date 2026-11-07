@@ -90,6 +90,68 @@ public class DatabaseTests : IDisposable
         Assert.Equal(500, all.Rows[0].StatusCode);
     }
 
+    // D-023: removing a URL hides it from the dashboard and the scheduler, but its history stays.
+    [Fact]
+    public async Task Soft_delete_hides_the_url_but_keeps_its_history()
+    {
+        var db = new Database(ConnectionString);
+        await db.InitializeAsync();
+        await db.InsertCheckResultAsync(UrlId, new CheckResult(200, 80, true, null));
+
+        Assert.True(await db.SoftDeleteUrlAsync(UrlId));
+
+        var live = await db.GetUrlStatusesAsync();
+        Assert.DoesNotContain(live, u => u.Id == UrlId);
+        var history = await db.GetAllChecksAsync("checkedAt", descending: true, page: 1, pageSize: 10, urlId: UrlId);
+        Assert.True(Assert.Single(history.Rows).UrlRemoved);
+        Assert.False(await db.SoftDeleteUrlAsync(UrlId)); // a second remove finds nothing live (404)
+    }
+
+    // EXTRA-01: pausing sets the flag the scheduler reads; resuming clears it.
+    [Fact]
+    public async Task Pause_and_resume_flip_the_paused_flag()
+    {
+        var db = new Database(ConnectionString);
+        await db.InitializeAsync();
+
+        await db.SetPausedAsync(UrlId, true);
+        Assert.True((await db.GetUrlStatusesAsync()).Single(u => u.Id == UrlId).Paused);
+
+        await db.SetPausedAsync(UrlId, false);
+        Assert.False((await db.GetUrlStatusesAsync()).Single(u => u.Id == UrlId).Paused);
+    }
+
+    // EC-004: the same URL with different case or a trailing slash is a duplicate; a removed one is not.
+    [Fact]
+    public async Task Duplicate_check_ignores_case_and_trailing_slash_but_not_removed_urls()
+    {
+        var db = new Database(ConnectionString);
+        await db.InitializeAsync(); // seed 1 is https://example.com
+
+        Assert.True(await db.LiveUrlExistsAsync("HTTPS://EXAMPLE.COM/"));
+        Assert.False(await db.LiveUrlExistsAsync("https://example.org"));
+
+        await db.SoftDeleteUrlAsync(UrlId);
+        Assert.False(await db.LiveUrlExistsAsync("https://example.com"));
+    }
+
+    // D-024: paging returns the right slice and the full total, so the UI can show "page 2 of 3".
+    [Fact]
+    public async Task All_checks_paging_returns_one_page_and_the_total()
+    {
+        var db = new Database(ConnectionString);
+        await db.InitializeAsync();
+        for (var i = 0; i < 25; i++)
+        {
+            await db.InsertCheckResultAsync(UrlId, new CheckResult(200, i, true, null));
+        }
+
+        var page3 = await db.GetAllChecksAsync("responseTimeMs", descending: false, page: 3, pageSize: 10);
+
+        Assert.Equal(25, page3.Total);
+        Assert.Equal([20L, 21L, 22L, 23L, 24L], page3.Rows.Select(r => r.ResponseTimeMs));
+    }
+
     // InsertCheckResultAsync always stamps "now", so an old row is written directly.
     private async Task InsertCheckAt(DateTime checkedAt, int statusCode, bool healthy)
     {
