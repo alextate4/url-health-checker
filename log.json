@@ -4,10 +4,10 @@
   "timebox": {
     "capHours": 3,
     "buildStartedAt": "2026-11-07T18:05:44Z",
-    "buildEndedAt": "2026-11-07T20:38:41Z",
+    "buildEndedAt": "2026-11-07T20:47:47Z",
     "notes": "Clock starts with the first line of application code. Planning and setup before that are logged separately below.",
     "result": {
-      "buildDuration": "2h 32m 57s of the 3h cap",
+      "buildDuration": "2h 42m 03s of the 3h cap",
       "howMeasured": "From the logged start (first line of app code) to the last commit that changed app or test code. All times are git commit timestamps in UTC, so anyone can check them with: TZ=UTC git log --date=iso-strict-local",
       "evidence": [
         {
@@ -45,11 +45,15 @@
         {
           "what": "Fix: frontend defaults for the settings, no NaN refresh (EC-033)",
           "when": "2026-11-07T20:38:41Z"
+        },
+        {
+          "what": "Fix a223cbb: one settings request per page load (EC-034, owner request)",
+          "when": "2026-11-07T20:47:47Z"
         }
       ],
       "outsideTheClock": "Planning and setup before 18:05:44Z (requirements, roadmap, Phase 1 context, GSD process) are not build time, per the timebox note.",
       "finalCheck": "Fresh clone verified at wrap-up: no wwwroot/node_modules/db, one `dotnet run` built and served the UI in 6 s, 4 seeds showed healthy/404/DNS-failure correctly, 55 backend + 7 frontend tests passed, git tree stayed clean.",
-      "note": "The first wrap-up stopped the clock at 19:58:18Z (1h 52m 34s). The owner then asked for more app changes (D-031, D-032, D-033), so the clock was re-opened and the end moved to the last app commit. Still inside the 3h cap."
+      "note": "The first wrap-up stopped the clock at 19:58:18Z (1h 52m 34s). The owner then asked for more app changes (D-031, D-032, D-033, EC-033, EC-034), so the clock was re-opened and the end moved to the last app commit. Still inside the 3h cap."
     }
   },
   "decisions": [
@@ -1295,6 +1299,15 @@
       "status": "fixed",
       "fixedNote": "logic.checkSecondsOrDefault / retentionDaysOrDefault give defaults (60 s, 30 days) and floors (10 s, 1 day) to every value from the server or the user; both boxes start at their defaults. Tested, and checked against a fake old-style server.",
       "plain": "If the server did not send the check time, the page asked the server for data nonstop. Now the page uses safe default values."
+    },
+    {
+      "id": "EC-034",
+      "priority": 3,
+      "title": "Every page load asked the server for the settings twice",
+      "description": "CheckIntervalSetting and RetentionSetting each called GET /api/settings on mount, so the same JSON was fetched twice (four times in the Vite dev server, where React StrictMode runs each effect twice on purpose). Found by the owner in the Network tab.",
+      "status": "fixed",
+      "fixedNote": "The Dashboard makes one GET /api/settings and passes checkIntervalSeconds and retentionDays to the two forms as props; the forms only save. Checked on the production build: 1 settings request per page load, and both boxes show saved non-default values (45 s, 7 days). The remaining doubles on port 5173 are StrictMode and do not happen in the build `dotnet run` serves.",
+      "plain": "Two boxes on the page each asked the server the same question. Now the page asks once and gives each box its answer."
     }
   ],
   "aiNotes": [

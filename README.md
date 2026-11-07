@@ -7,7 +7,7 @@ which URLs are healthy right now and how each one has behaved over a chosen time
 ![Dashboard](docs/dashboard.png)
 
 - **Decision log:** [`log.json`](log.json) holds every decision (D-001…D-033) with the
-  alternatives and tradeoffs, every edge case (EC-001…EC-033), and notes on how AI was used.
+  alternatives and tradeoffs, every edge case (EC-001…EC-034), and notes on how AI was used.
 - **Plain-English backend notes:** [`docs/CONCEPTS.md`](docs/CONCEPTS.md) explains each backend
   idea used here, with a JavaScript comparison.
 - **The brief as given to the AI:** [`docs/KICKOFF_PROMPT.md`](docs/KICKOFF_PROMPT.md).
@@ -302,7 +302,7 @@ log.json           decisions, edge cases, AI notes, timebox
 
 ## Time
 
-**Build time: 2h 32m 57s of the 3-hour cap.** Recorded in `log.json` → `timebox`, and checkable from
+**Build time: 2h 42m 03s of the 3-hour cap.** Recorded in `log.json` → `timebox`, and checkable from
 the commit timestamps (`TZ=UTC git log --date=iso-strict-local`):
 
 | Moment | UTC | Commit |
@@ -311,6 +311,7 @@ the commit timestamps (`TZ=UTC git log --date=iso-strict-local`):
 | Core complete (every v1 requirement + README) | 19:34:01 | `99a6f75` |
 | First wrap-up (clock stopped at 1h 52m 34s) | 19:58:18 | `e5efa1d` |
 | App changes after review (refresh redesigns D-031 → D-032 → D-033, then fixes) | 20:17:25 → 20:38:41 | `7a883c1`, `5d362bb`, `855cfcf` |
+| Last fix: one settings request per page load (EC-034) | 20:47:47 | `a223cbb` |
 
 Planning before the clock (requirements, roadmap, process setup) is not counted, per the timebox
 rule. A fresh-clone check at the first wrap-up passed (clone → `dotnet run` → UI served in 6 s, all
