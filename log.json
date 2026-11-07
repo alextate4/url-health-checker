@@ -1,0 +1,397 @@
+{
+  "project": "Rosnet Case Study — URL Health Monitor",
+  "about": "Decision log for defending choices in the Rosnet panel. Each decision lists alternatives, tradeoffs, a plain (STE-100) explanation, and how AI was involved. Edge cases are logged here and fixed only at the end, by priority.",
+  "timebox": {
+    "capHours": 3,
+    "buildStartedAt": null,
+    "buildEndedAt": null,
+    "notes": "Clock starts with the first line of application code. Planning and setup before that are logged separately below."
+  },
+  "decisions": [
+    {
+      "id": "D-001",
+      "date": "2026-11-07",
+      "area": "backend",
+      "title": "C# with ASP.NET Core 10 Minimal APIs",
+      "decision": "Build the backend in C# on ASP.NET Core 10 (current LTS) using Minimal APIs.",
+      "alternatives": [
+        {
+          "option": "Node.js + Express",
+          "whyNot": "My strongest language, but Rosnet is a .NET shop and the brief encourages C#/ASP.NET Core."
+        },
+        {
+          "option": "ASP.NET Core MVC controllers",
+          "whyNot": "More files and ceremony for about five endpoints."
+        }
+      ],
+      "rationale": "Matches Rosnet's stack. Minimal APIs keep each endpoint to a few lines, close to Express route handlers.",
+      "tradeoffs": "I am newer to C#, so I must learn and explain backend concepts as I go (tracked in docs/CONCEPTS.md).",
+      "plain": "The server is written in C#. Rosnet uses C#. Minimal APIs let us write each web address handler in a few lines, like Express.",
+      "ai": {
+        "suggestedBy": "me (C#), Claude (Minimal APIs)",
+        "accepted": "Minimal APIs",
+        "changed": null,
+        "rejected": null
+      },
+      "status": "accepted"
+    },
+    {
+      "id": "D-002",
+      "date": "2026-11-07",
+      "area": "frontend",
+      "title": "React 18 + Vite, no frameworks",
+      "decision": "React 18 built with Vite. Plain CSS and native fetch. No Next.js, Tailwind, UI kits, or chart libraries.",
+      "alternatives": [
+        {
+          "option": "Next.js",
+          "whyNot": "Server rendering and routing are not needed for one dashboard page. Heavier."
+        },
+        {
+          "option": "Create React App",
+          "whyNot": "Deprecated."
+        },
+        {
+          "option": "No bundler (React from a CDN)",
+          "whyNot": "No JSX without a build step; awkward to work with."
+        }
+      ],
+      "rationale": "Vite is a build tool, not a framework. It gives JSX and a fast dev server with very few dependencies.",
+      "tradeoffs": "The Vite React template now installs React 19, so React 18 must be pinned on purpose.",
+      "plain": "Vite turns our React files into files a browser can read. It does not add rules about how to build the app.",
+      "ai": {
+        "suggestedBy": "me (React 18, no frameworks), Claude (Vite, pin React 18)",
+        "accepted": "all",
+        "changed": null,
+        "rejected": null
+      },
+      "status": "accepted"
+    },
+    {
+      "id": "D-003",
+      "date": "2026-11-07",
+      "area": "frontend",
+      "title": "Plain JavaScript instead of TypeScript",
+      "decision": "Write the frontend in plain JavaScript. Optional JSDoc comments on API helpers for editor hints.",
+      "alternatives": [
+        {
+          "option": "TypeScript",
+          "whyNot": "Costs time inside a 3-hour cap. Its main win here is typing a handful of fetch calls."
+        }
+      ],
+      "rationale": "I can write and defend plain JavaScript fastest. The C# backend is already strongly typed; the only untyped edge is a few API calls.",
+      "tradeoffs": "No compile-time check that the frontend matches the API shape. Next step: add TypeScript and generate the client from the OpenAPI spec.",
+      "plain": "We write the screen code in plain JavaScript. It is faster for me. We can add TypeScript later.",
+      "ai": {
+        "suggestedBy": "Claude suggested TypeScript",
+        "accepted": null,
+        "changed": null,
+        "rejected": "TypeScript — I overruled it for time and ownership; Claude agreed on review."
+      },
+      "status": "accepted"
+    },
+    {
+      "id": "D-004",
+      "date": "2026-11-07",
+      "area": "data",
+      "title": "SQLite instead of Postgres",
+      "decision": "Store URLs, settings, and check results in a single SQLite file.",
+      "alternatives": [
+        {
+          "option": "Postgres",
+          "whyNot": "Reviewers would need Docker or a local install before running the app."
+        },
+        {
+          "option": "In-memory only",
+          "whyNot": "History must survive a restart."
+        }
+      ],
+      "rationale": "Zero setup for the panel: clone and run. One process writes small rows on a schedule, which fits SQLite well.",
+      "tradeoffs": "SQLite allows one writer at a time and is not shared across servers. Production path: Postgres, with time-based partitioning or TimescaleDB for history.",
+      "plain": "SQLite keeps all data in one file. Nothing extra is needed to run it. A big real system would use Postgres.",
+      "ai": {
+        "suggestedBy": "Claude",
+        "accepted": "SQLite",
+        "changed": null,
+        "rejected": null
+      },
+      "status": "accepted"
+    },
+    {
+      "id": "D-005",
+      "date": "2026-11-07",
+      "area": "data",
+      "title": "Dapper instead of EF Core",
+      "decision": "Use Dapper over Microsoft.Data.Sqlite with hand-written SQL. Create tables with one SQL script at startup.",
+      "alternatives": [
+        {
+          "option": "EF Core",
+          "whyNot": "Heavier, generates SQL I would need to explain, migrations add setup. Like Prisma: more hidden behavior."
+        },
+        {
+          "option": "Raw ADO.NET",
+          "whyNot": "No extra package, but much more boilerplate to map rows to objects."
+        }
+      ],
+      "rationale": "Two small packages. Every query is visible SQL I can read and defend, like using 'pg' or 'better-sqlite3' in Node.",
+      "tradeoffs": "No migrations; schema changes are manual. Fine for a take-home, not for a long-lived product.",
+      "plain": "Dapper runs SQL that we write. It turns each row into a C# object. We can read every query.",
+      "ai": {
+        "suggestedBy": "Claude",
+        "accepted": "Dapper",
+        "changed": null,
+        "rejected": null
+      },
+      "status": "accepted"
+    },
+    {
+      "id": "D-006",
+      "date": "2026-11-07",
+      "area": "backend",
+      "title": "Scheduler: BackgroundService + PeriodicTimer, no job library",
+      "decision": "One BackgroundService ticks on a PeriodicTimer, finds URLs that are due (per-URL interval), and checks them in parallel with a concurrency cap and a per-request timeout via IHttpClientFactory.",
+      "alternatives": [
+        {
+          "option": "Hangfire / Quartz.NET",
+          "whyNot": "Extra dependency and storage tables for a single recurring job."
+        },
+        {
+          "option": "One timer per URL",
+          "whyNot": "More moving parts to start, stop, and update when intervals change."
+        }
+      ],
+      "rationale": "Built into .NET. A single 'what is due now?' loop makes per-URL intervals simple and interval changes take effect on the next tick.",
+      "tradeoffs": "Runs in one process only; two app instances would double-check. Fine for this scope.",
+      "plain": "A loop wakes up every few seconds. It finds the web addresses that need a check now. It checks them at the same time, but not too many at once.",
+      "ai": {
+        "suggestedBy": "Claude",
+        "accepted": "pending build",
+        "changed": null,
+        "rejected": null
+      },
+      "status": "planned"
+    },
+    {
+      "id": "D-007",
+      "date": "2026-11-07",
+      "area": "architecture",
+      "title": "One process serves the API and the built UI",
+      "decision": "ASP.NET Core serves the built React app from wwwroot. In development, Vite proxies /api to the backend.",
+      "alternatives": [
+        {
+          "option": "Two separate servers",
+          "whyNot": "Reviewers would need to start two things and deal with CORS."
+        }
+      ],
+      "rationale": "One command to run the demo, no CORS setup.",
+      "tradeoffs": "Frontend must be built before running the backend in 'production' mode.",
+      "plain": "One program sends both the data and the web page. You start one thing.",
+      "ai": {
+        "suggestedBy": "Claude",
+        "accepted": "pending build",
+        "changed": null,
+        "rejected": null
+      },
+      "status": "planned"
+    },
+    {
+      "id": "D-008",
+      "date": "2026-11-07",
+      "area": "scope",
+      "title": "Configurable intervals: per-URL check interval, history window, retention",
+      "decision": "In scope: each URL has its own check interval; the UI picks a history time window; a global retention period deletes old results.",
+      "alternatives": [
+        {
+          "option": "One global check interval",
+          "whyNot": "Simpler, but I want the UI to configure checks per URL."
+        }
+      ],
+      "rationale": "Per-URL intervals fall out of the 'what is due now?' scheduler (D-006) at low cost. Retention is one DELETE query on a timer. History window is a query parameter.",
+      "tradeoffs": "Per-URL intervals are listed as bonus scope in the brief and add risk to the 3-hour cap. Claude flagged this; I kept it.",
+      "plain": "You can set how often each web address is checked. You can pick how far back to look. Old results are deleted after a set time.",
+      "ai": {
+        "suggestedBy": "me",
+        "accepted": null,
+        "changed": null,
+        "rejected": null
+      },
+      "status": "accepted"
+    },
+    {
+      "id": "D-009",
+      "date": "2026-11-07",
+      "area": "testing",
+      "title": "Test core requirements only; log edge cases for the end",
+      "decision": "xUnit tests cover only core behavior: a check records status, response time and healthy/unhealthy (including unreachable = unhealthy); results persist; history reads back. Edge cases are logged in edgeCases and fixed at the end by priority if time allows.",
+      "alternatives": [
+        {
+          "option": "Broad coverage including edge cases",
+          "whyNot": "Does not fit 3 hours; the brief warns against shallow tests piled up for a number."
+        }
+      ],
+      "rationale": "The brief asks what was tested, what was skipped, and why. A ranked edge-case list answers that directly.",
+      "tradeoffs": "Known gaps exist on purpose and are documented.",
+      "plain": "We test the main jobs first. We write down the rare problems. We fix them at the end if there is time.",
+      "ai": {
+        "suggestedBy": "me",
+        "accepted": null,
+        "changed": null,
+        "rejected": null
+      },
+      "status": "accepted"
+    },
+    {
+      "id": "D-010",
+      "date": "2026-11-07",
+      "area": "process",
+      "title": "Light dependencies, visible AI use, decision log in the repo",
+      "decision": "Ask before adding any package. Commit log.json and docs/CONCEPTS.md. Keep Co-Authored-By: Claude on AI-assisted commits. Use GSD (open-gsd/gsd-core) for planning.",
+      "alternatives": [
+        {
+          "option": "Keep notes private",
+          "whyNot": "The panel explicitly asks how AI was used and what was thrown out; the log is the evidence."
+        }
+      ],
+      "rationale": "Shows the decision process and honest AI use, which the brief says it will dig into.",
+      "tradeoffs": "The panel sees my learning notes for backend concepts. That is intentional.",
+      "plain": "We keep few add-on packages. We show where AI helped. We save our reasons in the project.",
+      "ai": {
+        "suggestedBy": "Claude",
+        "accepted": "all",
+        "changed": null,
+        "rejected": null
+      },
+      "status": "accepted"
+    },
+    {
+      "id": "D-011",
+      "date": "2026-11-07",
+      "area": "process",
+      "title": "Context management: fresh session per GSD step instead of /compact",
+      "decision": "Run each GSD step (discuss, plan, execute, verify) in a new session. State lives on disk in .planning/, log.json and docs/CONCEPTS.md. Use /gsd-pause-work and /gsd-resume-work for mid-phase stops.",
+      "alternatives": [
+        {
+          "option": "Long session with repeated /compact",
+          "whyNot": "Each summary loses detail; decisions and reasoning drift over time."
+        },
+        {
+          "option": "A chain of /goal loops",
+          "whyNot": "Could not be verified in this setup; GSD already provides phase-sized steps with on-disk state."
+        },
+        {
+          "option": "/gsd-autonomous",
+          "whyNot": "Runs all phases without stopping; I need to make and understand each decision to defend it."
+        }
+      ],
+      "rationale": "Fresh sessions start with a clean context and read only the files they need. Execution already runs in subagents with their own context.",
+      "tradeoffs": "Each new session spends a little time re-reading state files.",
+      "plain": "We start a new chat for each step. The plan and notes are saved in files. The new chat reads the files and continues.",
+      "ai": {
+        "suggestedBy": "me (/goal loops), Claude (GSD phase loop)",
+        "accepted": "GSD phase loop",
+        "changed": "Replaced /goal idea with GSD built-ins",
+        "rejected": null
+      },
+      "status": "accepted"
+    }
+  ],
+  "edgeCases": [
+    {
+      "id": "EC-001",
+      "priority": 1,
+      "title": "Overlapping checks for the same URL",
+      "description": "A slow check (near the timeout) is still running when the URL is due again, so two checks run at once.",
+      "status": "deferred",
+      "plain": "A check can take a long time. The next check can start before the first one ends."
+    },
+    {
+      "id": "EC-002",
+      "priority": 1,
+      "title": "Very short intervals",
+      "description": "A 1-second interval would hammer the target and flood the database. Needs a minimum.",
+      "status": "deferred",
+      "plain": "If you check too often, you send too much traffic. We need a smallest allowed time."
+    },
+    {
+      "id": "EC-003",
+      "priority": 1,
+      "title": "Invalid URL input",
+      "description": "Missing scheme, non-http(s) scheme, garbage text, or localhost/internal addresses entered in the form.",
+      "status": "deferred",
+      "plain": "A person can type a bad web address. The app must say no."
+    },
+    {
+      "id": "EC-004",
+      "priority": 2,
+      "title": "Duplicate URLs",
+      "description": "The same URL added twice, including trailing-slash or case differences.",
+      "status": "deferred",
+      "plain": "The same address can be added two times."
+    },
+    {
+      "id": "EC-005",
+      "priority": 2,
+      "title": "Time zones in the UI",
+      "description": "Store UTC; display local time consistently.",
+      "status": "deferred",
+      "plain": "The server keeps one world time. The screen must show your local time."
+    },
+    {
+      "id": "EC-006",
+      "priority": 2,
+      "title": "TLS certificate errors",
+      "description": "Expired or self-signed certificates — record as unhealthy with a clear reason vs. a generic failure.",
+      "status": "deferred",
+      "plain": "Some sites have a bad security certificate. We should show that reason."
+    },
+    {
+      "id": "EC-007",
+      "priority": 2,
+      "title": "Redirect loops",
+      "description": "Too many redirects; also whether a 3xx counts as healthy.",
+      "status": "deferred",
+      "plain": "A site can send you to another address again and again."
+    },
+    {
+      "id": "EC-008",
+      "priority": 3,
+      "title": "Deleting a URL that has history",
+      "description": "Decide whether results are removed with it or kept.",
+      "status": "deferred",
+      "plain": "If you remove an address, what happens to its old results?"
+    },
+    {
+      "id": "EC-009",
+      "priority": 3,
+      "title": "Interval changed while a check is running",
+      "description": "New interval should apply from the next due time without a restart.",
+      "status": "deferred",
+      "plain": "You change the time while a check runs. The new time must start on the next check."
+    },
+    {
+      "id": "EC-010",
+      "priority": 3,
+      "title": "SQLite write contention",
+      "description": "Many parallel checks writing at once could hit 'database is locked'.",
+      "status": "deferred",
+      "plain": "Many writes at the same time can block the data file."
+    },
+    {
+      "id": "EC-011",
+      "priority": 3,
+      "title": "Huge response bodies",
+      "description": "Avoid downloading large bodies; only headers are needed for status.",
+      "status": "deferred",
+      "plain": "Some pages are very big. We only need the first part of the answer."
+    }
+  ],
+  "aiNotes": [
+    {
+      "date": "2026-11-07",
+      "note": "Claude recommended TypeScript for typed API calls. I rejected it for time and because I can defend plain JS faster. See D-003."
+    },
+    {
+      "date": "2026-11-07",
+      "note": "Claude flagged per-URL intervals as bonus scope and a risk to the 3-hour cap. I kept them in scope. See D-008."
+    }
+  ]
+}
