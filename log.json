@@ -4,8 +4,32 @@
   "timebox": {
     "capHours": 3,
     "buildStartedAt": "2026-11-07T18:05:44Z",
-    "buildEndedAt": null,
-    "notes": "Clock starts with the first line of application code. Planning and setup before that are logged separately below."
+    "buildEndedAt": "2026-11-07T19:58:18Z",
+    "notes": "Clock starts with the first line of application code. Planning and setup before that are logged separately below.",
+    "result": {
+      "buildDuration": "1h 52m 34s of the 3h cap (62.5%)",
+      "howMeasured": "From the logged start (first line of app code) to the last commit that changed app or test code. All times are git commit timestamps in UTC, so anyone can check them with: TZ=UTC git log --date=iso-strict-local",
+      "evidence": [
+        {
+          "what": "Build clock start (set when the first app code was written)",
+          "when": "2026-11-07T18:05:44Z"
+        },
+        {
+          "what": "First app-code commit 0937bda (scaffold ASP.NET Core server)",
+          "when": "2026-11-07T18:06:00Z"
+        },
+        {
+          "what": "Core complete: README commit 99a6f75 (all v1 requirements done)",
+          "when": "2026-11-07T19:34:01Z"
+        },
+        {
+          "what": "Last app/test-code commit e5efa1d (endpoint tests)",
+          "when": "2026-11-07T19:58:18Z"
+        }
+      ],
+      "outsideTheClock": "Planning and setup before 18:05:44Z (requirements, roadmap, Phase 1 context, GSD process) are not build time, per the timebox note. Wrap-up docs after 19:58:18Z (this entry, CONCEPTS, fresh-clone check) changed no app code.",
+      "finalCheck": "Fresh clone verified at wrap-up: no wwwroot/node_modules/db, one `dotnet run` built and served the UI in 6 s, 4 seeds showed healthy/404/DNS-failure correctly, 55 backend + 7 frontend tests passed, git tree stayed clean."
+    }
   },
   "decisions": [
     {

@@ -2,8 +2,8 @@
 gsd_state_version: "1.0"
 current_phase: 1
 current_phase_name: Walking Skeleton
-status: core-complete
-stopped_at: "Core complete (Phases 1-2). Remaining: optional stretch (EXTRA-02, EXTRA-04, edge cases by priority)"
+status: complete
+stopped_at: Project complete; awaiting push and submission
 last_updated: "2026-11-07T19:48:55.794Z"
 last_activity: 2026-11-07
 last_activity_desc: README written; Phase 2 complete
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-11-07)
 Phase: 2 of 2 (Features & README) — Phase 1 done via quick task 261107-gje
 Plan: run as /gsd-quick tasks (D-015)
 Status: Ready for Phase 2
-Last activity: 2026-11-07 - README written; Phase 2 (core) complete
+Last activity: 2026-11-07 - Wrap-up: build clock stopped (1h52m34s of 3h); fresh clone verified
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -106,5 +106,5 @@ Items acknowledged and deferred at milestone close, most recent first:
 ## Session Continuity
 
 Last session: 2026-11-07T17:28:45.167Z
-Stopped at: Core complete (Phases 1-2). Remaining: optional stretch (EXTRA-02, EXTRA-04, edge cases by priority)
+Stopped at: Project complete; awaiting push and submission
 Resume file: .planning/quick/261107-gje-phase-1-walking-skeleton/261107-gje-SUMMARY.md

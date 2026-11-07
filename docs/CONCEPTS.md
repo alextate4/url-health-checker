@@ -409,3 +409,36 @@ unknown key gets a 400 answer before any SQL runs.
 and `if (!column) return res.status(400)`. You never build the query with `` `ORDER BY ${key}` ``.
 
 **Why we use it:** Users can sort by any column, and the server stays safe.
+
+---
+
+## SSRF (server-side request forgery)
+
+**What it is:** Our server visits every URL a user adds. The server sits inside a network. It can
+reach machines that the user cannot reach, like a database at `localhost:5432` or a cloud metadata
+address like `169.254.169.254`. If we checked any URL, a user could make our server visit those
+machines for them. That attack is called SSRF. So `InputRules.UrlProblem` refuses addresses that
+point to this machine or the local network.
+
+**JavaScript comparison:** It is like a "fetch any URL" route in an Express server:
+`app.get('/proxy', (req, res) => fetch(req.query.url))`. Without a check, anyone can use your server
+to call your private services.
+
+**Why we use it:** A health checker must call user URLs. The check keeps it from calling ours. One
+gap is logged (EC-031): a normal-looking name can point to a private address, and we do not catch
+that yet.
+
+---
+
+## Testing the API in memory (WebApplicationFactory)
+
+**What it is:** `WebApplicationFactory<Program>` starts our real app inside the test process. It
+does not open a network port. The test gets an `HttpClient` that sends requests straight into the
+app. Before the app starts, the test can swap parts of it. We give it a throwaway database, a fake
+network, and we turn off the two timers.
+
+**JavaScript comparison:** It is like `supertest(app)` in Express: `request(app).get('/api/urls')`
+calls your real routes without starting `app.listen()`.
+
+**Why we use it:** The tests check the real status codes and rules of every endpoint. They are fast,
+and they never touch the real database or the internet.

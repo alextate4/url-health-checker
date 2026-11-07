@@ -286,4 +286,17 @@ log.json           decisions, edge cases, AI notes, timebox
 .planning/         plan/state files from the AI workflow
 ```
 
-**Time:** the build clock started at 18:05 UTC (`log.json` → `timebox`), within a 3-hour cap.
+## Time
+
+**Build time: 1h 52m 34s of the 3-hour cap.** Recorded in `log.json` → `timebox`, and checkable
+from the commit timestamps (`TZ=UTC git log --date=iso-strict-local`):
+
+| Moment | UTC | Commit |
+|---|---|---|
+| Build clock starts (first line of app code) | 18:05:44 | `0937bda` at 18:06:00 |
+| Core complete (every v1 requirement + README) | 19:34:01 | `99a6f75` |
+| Last app or test code | 19:58:18 | `e5efa1d` |
+
+Planning before the clock (requirements, roadmap, process setup) is not counted, per the timebox
+rule. After 19:58 only docs changed: this section, CONCEPTS.md, and a final fresh-clone check
+(clone → `dotnet run` → UI served in 6 s, all 62 tests pass).
