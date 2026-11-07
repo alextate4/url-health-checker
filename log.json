@@ -800,6 +800,29 @@
         "rejected": "Vitest/RTL (not asked for packages)"
       },
       "status": "accepted"
+    },
+    {
+      "id": "D-028",
+      "date": "2026-11-07",
+      "area": "api",
+      "title": "Check now: POST /api/urls/{id}/check runs one check in the request",
+      "decision": "The endpoint runs UrlChecker with the same named HttpClient (same timeout and User-Agent), saves the result with InsertCheckResultAsync, and returns it. It works on paused URLs (a manual request) and returns 404 for removed ones. The UI button is disabled until the request finishes.",
+      "alternatives": [
+        {
+          "option": "Queue the check in the scheduler (e.g. clear the URL's due time)",
+          "whyNot": "The scheduler would need to be shared as a singleton and the user would wait up to one tick; doing it in the request is simpler and gives the result back directly."
+        }
+      ],
+      "rationale": "Smallest code that meets EXTRA-02 and reuses the checker and insert exactly as the scheduler does.",
+      "tradeoffs": "The scheduler's in-flight set does not see manual checks, so a manual check and a scheduled one for the same URL can overlap once; both are saved as separate rows. The request can take up to the 10 s timeout.",
+      "plain": "A lightning button checks one web address right away and saves the result like any other check.",
+      "ai": {
+        "suggestedBy": "Claude (next item on the stretch list)",
+        "accepted": "Owner said proceed.",
+        "changed": null,
+        "rejected": null
+      },
+      "status": "accepted"
     }
   ],
   "edgeCases": [
@@ -1059,6 +1082,14 @@
       "description": "InputRules checks the host as written. A DNS name pointing at 10.x or 127.0.0.1 (or DNS rebinding) is not caught. A full fix resolves the name and checks every address at check time, inside a custom SocketsHttpHandler.ConnectCallback.",
       "status": "deferred",
       "plain": "Someone could use a normal-looking web name that secretly points inside our network. We only block addresses that are written out directly."
+    },
+    {
+      "id": "EC-032",
+      "priority": 3,
+      "title": "A manual check can overlap a scheduled check of the same URL",
+      "description": "POST /api/urls/{id}/check does not use CheckScheduler's in-flight set, so if the scheduler starts the same URL at the same moment, two checks run and both rows are saved.",
+      "status": "deferred",
+      "plain": "If you press 'check now' at the exact moment the timer also checks, you get two results at once."
     }
   ],
   "aiNotes": [

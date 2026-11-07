@@ -6,8 +6,8 @@ which URLs are healthy right now and how each one has behaved over a chosen time
 
 ![Dashboard](docs/dashboard.png)
 
-- **Decision log:** [`log.json`](log.json) holds every decision (D-001…D-027) with the
-  alternatives and tradeoffs, every edge case (EC-001…EC-031), and notes on how AI was used.
+- **Decision log:** [`log.json`](log.json) holds every decision (D-001…D-028) with the
+  alternatives and tradeoffs, every edge case (EC-001…EC-032), and notes on how AI was used.
 - **Plain-English backend notes:** [`docs/CONCEPTS.md`](docs/CONCEPTS.md) explains each backend
   idea used here, with a JavaScript comparison.
 - **The brief as given to the AI:** [`docs/KICKOFF_PROMPT.md`](docs/KICKOFF_PROMPT.md).
@@ -70,7 +70,8 @@ the build step only runs when `server/wwwroot` is missing (EC-014).
 - A strip of the 30 newest checks, colored by result, with a tooltip on each box.
 - The clock button opens a pop-up with that URL's **entire history**, sorted and paged.
 - Add a URL with its interval. Change the interval in place (it applies on the next tick, with no
-  restart). **Pause / play** a URL. **Remove** it with the trash can.
+  restart). **Check now** (⚡) runs one check immediately. **Pause / play** a URL. **Remove** it with
+  the trash can.
 - Refreshes every 5 s without a page reload, plus a **Refresh** button to reload at once.
 - Server-side **sorting** on every column with an arrow, and **paging** with 10 / 50 / 100 rows.
 - An **Archive** page lists every check ever saved: live and archived, removed URLs included. It
@@ -87,6 +88,7 @@ server. Every commit tells one step of the story (`git log --oneline`).
 | GET | `/api/urls?window=1h\|24h\|7d&sort=&dir=&page=&pageSize=` | Dashboard rows: latest check + window summary + 30 newest checks |
 | POST | `/api/urls` `{url, intervalSeconds}` | Add a URL (201) |
 | PATCH | `/api/urls/{id}` `{intervalSeconds?, paused?}` | Re-time and/or pause/resume (204 / 404) |
+| POST | `/api/urls/{id}/check` | Check now: run one check and return it (200 / 404) |
 | DELETE | `/api/urls/{id}` | Soft delete (204 / 404) |
 | GET | `/api/urls/{id}/checks?window=` | One URL's checks inside a window |
 | GET | `/api/checks?sort=&dir=&page=&pageSize=&urlId=` | Every check, live + archived, paged |
@@ -201,8 +203,8 @@ added without approval), the scheduler loop's timing, and the deferred edge case
 ## What I cut, and what I'd do next
 
 **Cut or changed**
-- **"Check now" (EXTRA-02) and the response-time sparkline (EXTRA-04)** were not built. Pause/resume
-  (EXTRA-01) and the per-URL history view (EXTRA-03) were.
+- **The response-time sparkline (EXTRA-04)** was not built. Pause/resume (EXTRA-01), "check now"
+  (EXTRA-02), and the per-URL history view (EXTRA-03) were.
 - **Hard-delete retention:** replaced by archiving (above).
 - **Out of scope per the brief:** alerting, response-body assertions, retry/backoff, auth,
   multi-tenancy, containers, a design system, TypeScript, Postgres.
@@ -210,7 +212,7 @@ added without approval), the scheduler loop's timing, and the deferred edge case
 **Next steps, in order**
 1. Finish input rules: retention days, and resolve-then-check for internal addresses (EC-030, EC-031).
 2. Report TLS certificate errors clearly (EC-006).
-3. "Check now" button (EXTRA-02) and a response-time sparkline (EXTRA-04).
+3. A response-time sparkline per row (EXTRA-04).
 4. A rollup table (per URL per hour) so 7-day stats don't re-scan raw rows (EC-021), plus a purge
    or export job for the archive (EC-026).
 5. Keyset paging for the Archive (EC-028); restore a removed URL (EC-027).
