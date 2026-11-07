@@ -4,13 +4,11 @@ import AddUrlForm from './AddUrlForm.jsx'
 import RetentionSetting from './RetentionSetting.jsx'
 import { SortHeader, PlainHeader, Pager } from './TableControls.jsx'
 import { query } from './api.js'
-import { shouldPoll } from './logic.js'
+import { tableRefreshSeconds } from './logic.js'
 import { RefreshIcon } from './icons.jsx'
 
 const WINDOWS = ['1h', '24h', '7d']
 
-// The scheduler wakes every 5s (D1-14), so polling faster would only re-read the same rows.
-const POLL_MS = 5000
 
 export default function Dashboard({ onError }) {
   const [data, setData] = useState(null)
@@ -22,9 +20,11 @@ export default function Dashboard({ onError }) {
   // Bumped after an add, re-time, or remove, so the list reloads at once instead of on the next poll.
   const [version, setVersion] = useState(0)
   const refresh = () => setVersion((v) => v + 1)
-  // Auto-refresh only re-reads results; it never starts checks. Pausing URLs is what stops checks.
+  // Whole-table auto-refresh: picks up added/removed URLs, order and paging. Independent of play/pause;
+  // each playing row also refreshes itself on its own "Every" interval (D-032). Only reads; never checks.
   const [autoRefresh, setAutoRefresh] = useState(true)
-  const polling = shouldPoll(autoRefresh, data?.rows)
+  const [refreshInput, setRefreshInput] = useState('30')
+  const refreshMs = tableRefreshSeconds(refreshInput) * 1000
 
   useEffect(() => {
     // Set on cleanup, so a slow reply for old settings cannot overwrite the new data.
@@ -48,13 +48,13 @@ export default function Dashboard({ onError }) {
     }
 
     load()
-    const timer = polling ? setInterval(load, POLL_MS) : null
+    const timer = autoRefresh ? setInterval(load, refreshMs) : null
 
     return () => {
       ignore = true
       clearInterval(timer)
     }
-  }, [timeWindow, sort, page, pageSize, version, polling, onError])
+  }, [timeWindow, sort, page, pageSize, version, autoRefresh, refreshMs, onError])
 
   // A new sort or page size starts again at page 1, so the user is never left on an empty page.
   function changeSort(next) {
@@ -81,15 +81,24 @@ export default function Dashboard({ onError }) {
               {w}
             </button>
           ))}
-          {/* The table reloads every 5 s while auto-refresh is on; this is "show me the latest now". */}
+          {/* Reloads the whole table now, whatever the auto-refresh setting. */}
           <button type="button" className="secondary refresh" onClick={refresh}>
             <RefreshIcon /> Refresh
           </button>
           <label className="auto-refresh">
             <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />
-            Auto-refresh
+            Auto-refresh table every
           </label>
-          {autoRefresh && !polling && <span className="hint">(stopped: every URL is paused)</span>}
+          <input
+            type="number"
+            className="refresh-seconds"
+            min="5"
+            value={refreshInput}
+            disabled={!autoRefresh}
+            onChange={(e) => setRefreshInput(e.target.value)}
+            aria-label="Table auto-refresh interval in seconds"
+          />
+          s
         </div>
         <RetentionSetting onError={onError} />
       </div>
@@ -126,7 +135,7 @@ export default function Dashboard({ onError }) {
               </thead>
               <tbody>
                 {data.rows.map((u) => (
-                  <UrlRow key={u.id} url={u} onChanged={refresh} onError={onError} />
+                  <UrlRow key={u.id} url={u} timeWindow={timeWindow} onChanged={refresh} onError={onError} />
                 ))}
               </tbody>
             </table>

@@ -433,3 +433,8 @@ button.icon:disabled {
 .window-picker .hint {
   font-size: 13px;
 }
+
+.refresh-seconds {
+  width: 48px;
+  margin: 0 4px;
+}

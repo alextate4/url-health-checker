@@ -46,11 +46,22 @@ export function checkTooltip(check) {
   ].join(' · ')
 }
 
-// Whether the dashboard should keep re-reading every 5 s. Off when the user turned auto-refresh off,
-// or when every URL on screen is paused (nothing new can appear). Before the first load (rows null)
-// it polls, so the page fills in. Playing a URL reloads at once and turns polling back on.
-export function shouldPoll(autoRefresh, rows) {
-  if (!autoRefresh) return false
-  if (!rows || rows.length === 0) return true
-  return !rows.every((row) => row.paused)
+// The whole-table auto-refresh interval the user typed, in seconds. Anything below 5 s (the
+// scheduler's tick) or not a number falls back to a safe value, so a typo cannot hammer the server.
+export function tableRefreshSeconds(value) {
+  const seconds = Math.round(Number(value))
+  if (!Number.isFinite(seconds) || seconds <= 0) return 30
+  return Math.max(5, seconds)
+}
+
+// When a playing row should reload itself, in ms from now. The server checks a URL once its
+// interval has passed, on a 5 s tick, so the new result lands up to ~5 s (+ the check time)
+// after it is due. Aim a little after that. A never-checked URL is checked on the next tick.
+// If the result is already late, try again soon, but not more often than every 3 s.
+export const ROW_SETTLE_MS = 6000
+
+export function rowRefreshDelayMs(lastCheckedAt, intervalSeconds, nowMs) {
+  if (!lastCheckedAt) return ROW_SETTLE_MS
+  const dueMs = Date.parse(lastCheckedAt) + intervalSeconds * 1000
+  return Math.max(3000, dueMs + ROW_SETTLE_MS - nowMs)
 }

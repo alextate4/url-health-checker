@@ -1,8 +1,8 @@
-import { useState } from 'react'
-import { changeInterval, removeUrl, setPaused, checkNow } from './api.js'
+import { useEffect, useState } from 'react'
+import { changeInterval, removeUrl, setPaused, checkNow, getUrlRow } from './api.js'
 import { TrashIcon, PlayIcon, PauseIcon, HistoryIcon, CheckNowIcon } from './icons.jsx'
 import HistoryModal from './HistoryModal.jsx'
-import { rowStatus, formatPercent, formatMs, checkTooltip } from './logic.js'
+import { rowStatus, formatPercent, formatMs, checkTooltip, rowRefreshDelayMs } from './logic.js'
 
 // Edits the interval in place. The scheduler picks up the new value on its next tick (URL-03).
 function IntervalEditor({ url, onChanged, onError }) {
@@ -32,7 +32,36 @@ function IntervalEditor({ url, onChanged, onError }) {
   )
 }
 
-export default function UrlRow({ url, onChanged, onError }) {
+export default function UrlRow({ url: fromTable, timeWindow, onChanged, onError }) {
+  // The row's own copy. A table reload replaces it; while playing, the row also reloads itself
+  // shortly after each of its own checks is due, on its "Every" interval (D-032).
+  const [url, setUrl] = useState(fromTable)
+  const [rowReloads, setRowReloads] = useState(0)
+  useEffect(() => setUrl(fromTable), [fromTable])
+
+  const lastCheckedAt = url.lastCheck?.checkedAt
+  useEffect(() => {
+    if (url.paused) return undefined // paused: no checks happen, so there is nothing new to show
+    let ignore = false
+    const timer = setTimeout(() => {
+      getUrlRow(url.id, timeWindow)
+        .then((row) => {
+          if (!ignore) setUrl(row)
+        })
+        .catch(() => {
+          // A failed or 404 (removed elsewhere) row reload is not worth an error banner;
+          // the next table reload shows the real state.
+        })
+        .finally(() => {
+          if (!ignore) setRowReloads((n) => n + 1) // schedule the next one even if nothing changed
+        })
+    }, rowRefreshDelayMs(lastCheckedAt, url.intervalSeconds, Date.now()))
+    return () => {
+      ignore = true
+      clearTimeout(timer)
+    }
+  }, [url.id, url.paused, url.intervalSeconds, lastCheckedAt, timeWindow, rowReloads])
+
   const check = url.lastCheck
   const summary = url.summary
   const [showHistory, setShowHistory] = useState(false)

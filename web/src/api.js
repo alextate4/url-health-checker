@@ -27,6 +27,13 @@ export function setPaused(id, paused) {
   return send('PATCH', `/api/urls/${id}`, { paused })
 }
 
+// One dashboard row, for a playing row that refreshes itself.
+export async function getUrlRow(id, timeWindow) {
+  const response = await fetch(`/api/urls/${id}${query({ window: timeWindow })}`)
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  return response.json()
+}
+
 // Runs one check now; resolves when the result is saved.
 export function checkNow(id) {
   return send('POST', `/api/urls/${id}/check`)
