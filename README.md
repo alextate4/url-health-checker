@@ -6,7 +6,7 @@ which URLs are healthy right now and how each one has behaved over a chosen time
 
 ![Dashboard](docs/dashboard.png)
 
-- **Decision log:** [`log.json`](log.json) holds every decision (D-001…D-029) with the
+- **Decision log:** [`log.json`](log.json) holds every decision (D-001…D-030) with the
   alternatives and tradeoffs, every edge case (EC-001…EC-032), and notes on how AI was used.
 - **Plain-English backend notes:** [`docs/CONCEPTS.md`](docs/CONCEPTS.md) explains each backend
   idea used here, with a JavaScript comparison.
@@ -33,7 +33,8 @@ creates `server/healthmonitor.db` and seeds four URLs, so you see every state at
 | `https://github.com/this-page-should-not-exist-rosnet` | unhealthy with a status code (404) |
 | `https://unreachable.invalid` | unhealthy with no response and an error reason (DNS; `.invalid` can never resolve) |
 
-**Tests:** `dotnet test` (37 backend tests) and `npm --prefix web test` (7 frontend tests). Both run in about a second.
+**Tests:** `dotnet test` (55 backend tests, ~1 s) and `npm --prefix web test` (7 frontend tests).
+Backend line coverage is **91%**: `dotnet test --collect "Code Coverage;Format=cobertura"`.
 
 **Frontend work with hot reload:** run `dotnet run --project server` in one terminal and
 `npm --prefix web run dev` in another, then open the Vite address. `/api` is proxied to :5080.
@@ -120,7 +121,7 @@ and missing columns are added to an older database once.
 | SQLite + Dapper (D-004, D-005) | Zero setup for a reviewer; plain SQL I can explain line by line, no ORM magic |
 | `BackgroundService` + `PeriodicTimer` (D-006) | Built in; no job library needed for "check what is due every 5 s" |
 | React 18 + Vite, plain JS and CSS (D-002, D-003) | Light dependencies, no TypeScript or UI kit to defend |
-| **Packages added:** Dapper, Microsoft.Data.Sqlite; react, react-dom, vite, @vitejs/plugin-react; xunit, xunit.runner.visualstudio, Microsoft.NET.Test.Sdk | Each was approved before it was added (D-016, D-020). No icon, router, chart, or mocking libraries |
+| **Packages added:** Dapper, Microsoft.Data.Sqlite; react, react-dom, vite, @vitejs/plugin-react; xunit, xunit.runner.visualstudio, Microsoft.NET.Test.Sdk, Microsoft.AspNetCore.Mvc.Testing | Each was approved before it was added (D-016, D-020, D-030). No icon, router, chart, or mocking libraries |
 
 ---
 
@@ -159,6 +160,14 @@ own temporary SQLite file.
 | `All_checks_paging_returns_one_page_and_the_total` | Paging slice and total |
 | `InputRulesTests` (24 cases) | Public URLs accepted; malformed URLs and every SSRF target refused; 172.32.x (just outside a private range) allowed; interval bounds 10 s–1 day |
 
+| `CheckSchedulerTests` (3) | The real loop, started in-process: every due URL is checked and paused ones skipped; a recently checked URL is not re-checked; a URL that never answers does not hold up the others (CHK-05) |
+| `RetentionSweeperTests` | The real timer service archives results older than the stored setting at start |
+| `ApiTests` (14 cases) | The real app in memory (`WebApplicationFactory`, temp DB, background services off, fake network): page + sort, every 400 rule, add 201/409/400-with-reason, PATCH interval/pause, soft delete keeps history, check now, retention setting, one URL's window history |
+
+**Coverage (backend, lines):** 91% overall: `Database.cs` 98%, `Program.cs` 92%, `UrlChecker.cs`
+91%, `InputRules.cs` 89%, `CheckScheduler.cs` 80%, `RetentionSweeper.cs` 72%. What is left is mostly
+the timer loop after its first pass and error-logging branches.
+
 **Frontend (`web/src/logic.test.js`, Node's built-in test runner, no packages):** the UI's
 decisions live in `web/src/logic.js` and are tested directly: sort toggling and arrows, page count
 (never 0), row status (paused > pending > last result), a real 0% vs a missing value, and the
@@ -166,11 +175,14 @@ tooltip for a check with no response.
 
 **Each test can fail for a real reason.** I broke the code on purpose and watched the guarding test
 fail: changing `<= 399` to `< 399` fails the 399 case, disabling the window filter fails the
-history test, and treating 0% as missing fails the frontend formatting test.
+history test, treating 0% as missing fails the frontend formatting test, ignoring pause or awaiting
+checks one at a time fails the scheduler tests, and removing the duplicate check fails the API test.
+(The first concurrency test passed against the broken loop because the hanging URL was last; that is
+how it was found and fixed.)
 
-**Checked by running the app, not by automated tests:** the HTTP endpoints, the scheduler loop
-(per-URL intervals, pause/resume, and concurrency, using a local socket that never answers), the
-fresh-clone build, and the UI layout (headless Chrome screenshots at 1280 / 1440 / 1920 px).
+**Checked by running the app, not by automated tests:** the fresh-clone build, real network checks
+(including a local socket that never answers), and the UI layout (headless Chrome screenshots at
+1280 / 1440 / 1920 px).
 
 ### What I didn't handle or test, and why
 
@@ -194,9 +206,8 @@ and EC-023 (deleting a URL with history), EC-009 (re-timing applies on the next 
 | EC-031 | 2 | The internal-address block checks the host as written; a public name that *resolves* to a private IP gets through |
 | EC-010, 013, 015–019, 024, 025, 027–030 | 3 | Smaller gaps: possible SQLite write contention under heavy load, no undo for remove, OFFSET paging can shift rows, resized widths are not saved, retention days not validated on the server, polling continues in hidden tabs, and others |
 
-Not tested on purpose: the HTTP layer end to end (it would need `WebApplicationFactory` and another
-package), React component rendering (it would need Vitest + Testing Library + jsdom, which were not
-added without approval), the scheduler loop's timing, and the deferred edge cases above.
+Not tested on purpose: React component rendering (it would need Vitest + Testing Library + jsdom),
+the scheduler's later ticks (tests run only its start-up pass), and the deferred edge cases above.
 
 ---
 
@@ -216,7 +227,7 @@ added without approval), the scheduler loop's timing, and the deferred edge case
 3. A rollup table (per URL per hour) so 7-day stats don't re-scan raw rows (EC-021), plus a purge
    or export job for the archive (EC-026).
 4. Keyset paging for the Archive (EC-028); restore a removed URL (EC-027).
-5. Endpoint tests with `WebApplicationFactory`; pause polling when the tab is hidden (EC-018).
+5. Component tests (Vitest + Testing Library); pause polling when the tab is hidden (EC-018).
 6. Alerting (email or webhook) when a URL changes state.
 
 ---
@@ -225,7 +236,7 @@ added without approval), the scheduler loop's timing, and the deferred edge case
 
 This was built with Claude Code (Claude Opus) as a pair, using a lightweight plan → build → verify
 loop. AI use is meant to be visible:
-- Tests: 37 xUnit + 7 frontend (`node:test`).
+- Tests: 55 xUnit + 7 frontend (`node:test`).
 - Every commit carries a `Co-Authored-By: Claude` trailer.
 - Every decision in `log.json` has an `ai` block that says who suggested it and what I accepted,
   changed, or rejected.
@@ -269,7 +280,7 @@ server/            ASP.NET Core app (API, scheduler, retention, SQLite)
   CheckScheduler.cs  5 s loop, concurrency cap, pause
   RetentionSweeper.cs moves old results to the archive
 web/src/           React 18 UI (plain JS + CSS)
-tests/             xUnit tests (37); frontend tests are in web/src/logic.test.js
+tests/             xUnit tests (55); frontend tests are in web/src/logic.test.js
 docs/              CONCEPTS.md, KICKOFF_PROMPT.md, screenshot
 log.json           decisions, edge cases, AI notes, timebox
 .planning/         plan/state files from the AI workflow

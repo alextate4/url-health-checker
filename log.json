@@ -854,6 +854,37 @@
         "rejected": "The sparkline itself: owner removed it after seeing it, because the moving line was too much visual noise."
       },
       "status": "reverted by owner"
+    },
+    {
+      "id": "D-030",
+      "date": "2026-11-07",
+      "area": "testing",
+      "title": "Test the background services in-process and the API with WebApplicationFactory (+1 package)",
+      "decision": "CheckScheduler and RetentionSweeper are started/stopped for real in tests with a temp SQLite file, a fake IHttpClientFactory, and in-memory config (no package). The HTTP endpoints are tested with WebApplicationFactory<Program> from Microsoft.AspNetCore.Mvc.Testing 10.0.14 (owner approved): the Database singleton is swapped for a temp one, only our two hosted services are removed (the web server is also an IHostedService), and the 'checker' client gets a fake handler. Program.cs is now 'public partial class Program'. 55 backend tests; server line coverage 90.9% (Database 98%, Program 92%, UrlChecker 91%, InputRules 89%, CheckScheduler 80%, RetentionSweeper 72%).",
+      "alternatives": [
+        {
+          "option": "Leave Program.cs untested (curl only)",
+          "whyNot": "It is ~30% of server lines and holds every 400 rule and status code the panel will ask about."
+        },
+        {
+          "option": "Run the app as a separate process and call it over a port",
+          "whyNot": "Slow, flaky, and it would hit the real network through the scheduler."
+        },
+        {
+          "option": "Mock IHostedService timing with a fake TimeProvider",
+          "whyNot": "More code to explain; a 60 s tick means only the start-up pass runs, which is what the tests need."
+        }
+      ],
+      "rationale": "Owner asked for tests on the .cs files that needed them; this covers the untested glue without changing app behavior.",
+      "tradeoffs": "One more test-only package. The scheduler's timer loop after the first pass and some error-logging branches stay uncovered. Relaxes D-009's 'core only' rule at the owner's request.",
+      "plain": "We now test the server's web addresses and its two timers. The tests start the app inside the test, with a fake internet and a throwaway database.",
+      "ai": {
+        "suggestedBy": "Claude proposed the package; owner approved it",
+        "accepted": "Add Microsoft.AspNetCore.Mvc.Testing and test the endpoints",
+        "changed": null,
+        "rejected": null
+      },
+      "status": "accepted"
     }
   ],
   "edgeCases": [
@@ -1175,6 +1206,10 @@
     {
       "date": "2026-11-07",
       "note": "Two slips in the test round: the first npm test script (`node --test src/`) ran the folder as a file and failed; fixed with a glob. Then Claude's 'break it on purpose' check on logic.js used git checkout to restore, but the file was not committed yet, so the broken version stayed on disk; Claude noticed in the status output and restored it by hand before committing. All 7 frontend and 37 backend tests pass after."
+    },
+    {
+      "date": "2026-11-07",
+      "note": "The first version of the concurrency test passed even when Claude broke the scheduler into a one-at-a-time loop, because the hanging URL happened to be the last seed. Found only by the deliberate-break check; the test now hangs the first URL and fails on the broken loop. A later break check silently ran nothing because macOS has no `timeout` command; Claude noticed the empty output and re-ran it."
     }
   ]
 }
