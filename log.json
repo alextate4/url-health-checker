@@ -168,7 +168,7 @@
         "changed": null,
         "rejected": null
       },
-      "status": "planned"
+      "status": "accepted (built in Phase 1)"
     },
     {
       "id": "D-007",
@@ -191,7 +191,7 @@
         "changed": null,
         "rejected": null
       },
-      "status": "planned"
+      "status": "accepted (built in Phase 1)"
     },
     {
       "id": "D-008",
@@ -816,8 +816,9 @@
       "priority": 3,
       "title": "Interval changed while a check is running",
       "description": "New interval should apply from the next due time without a restart.",
-      "status": "deferred",
-      "plain": "You change the time while a check runs. The new time must start on the next check."
+      "status": "fixed",
+      "plain": "You change the time while a check runs. The new time must start on the next check.",
+      "fixedNote": "Handled by design (URL-03, D-021): the scheduler reads interval_seconds from the database on every 5 s pass, so a new interval applies from the next tick without a restart."
     },
     {
       "id": "EC-010",
@@ -832,8 +833,9 @@
       "priority": 3,
       "title": "Huge response bodies",
       "description": "Avoid downloading large bodies; only headers are needed for status.",
-      "status": "deferred",
-      "plain": "Some pages are very big. We only need the first part of the answer."
+      "status": "fixed",
+      "plain": "Some pages are very big. We only need the first part of the answer.",
+      "fixedNote": "Handled by design (D1-17): UrlChecker uses HttpCompletionOption.ResponseHeadersRead, so bodies are never downloaded."
     },
     {
       "id": "EC-012",
