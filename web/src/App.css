@@ -327,6 +327,9 @@ button.sort {
   resize: vertical;
   overflow: hidden;
   min-height: 1.4em;
+  /* When the row is dragged taller, keep the dot and word in the middle, not stuck at the top. */
+  display: flex;
+  align-items: center;
 }
 
 /* Layout guard: if the window is still too narrow, the table scrolls inside this box
