@@ -88,3 +88,36 @@ th {
 .box.unhealthy {
   background: #d64545;
 }
+
+.add-url {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.add-url input[type='url'] {
+  flex: 1;
+  max-width: 420px;
+  padding: 4px 8px;
+}
+
+.add-url input[type='number'],
+.interval input {
+  width: 64px;
+  margin: 0 4px;
+  padding: 2px 4px;
+}
+
+.interval {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+button.remove {
+  color: #d64545;
+  background: none;
+  border: 1px solid #d64545;
+  cursor: pointer;
+}

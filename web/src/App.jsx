@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import UrlRow from './UrlRow.jsx'
+import AddUrlForm from './AddUrlForm.jsx'
 
 const WINDOWS = ['1h', '24h', '7d']
 
@@ -11,6 +12,9 @@ export default function App() {
   const [error, setError] = useState(null)
   // Not called "window": that would hide the browser's global window object.
   const [timeWindow, setTimeWindow] = useState('1h')
+  // Bumped after an add, re-time, or remove, so the list reloads at once instead of on the next poll.
+  const [version, setVersion] = useState(0)
+  const refresh = () => setVersion((v) => v + 1)
 
   useEffect(() => {
     // Set on cleanup, so a slow reply for the old window cannot overwrite the new window's data.
@@ -28,7 +32,7 @@ export default function App() {
           setError(null)
         })
         .catch((err) => {
-          if (!ignore) setError(err.message)
+          if (!ignore) setError(`Could not load URLs: ${err.message}`)
         })
     }
 
@@ -39,11 +43,12 @@ export default function App() {
       ignore = true
       clearInterval(timer)
     }
-  }, [timeWindow])
+  }, [timeWindow, version])
 
   return (
     <main>
       <h1>URL Health Monitor</h1>
+      <AddUrlForm onChanged={refresh} onError={setError} />
       <div className="window-picker">
         <span>Window:</span>
         {WINDOWS.map((w) => (
@@ -59,7 +64,7 @@ export default function App() {
         ))}
       </div>
       {/* Above the table, so a failed poll keeps the last good data visible. */}
-      {error && <p className="error">Could not load URLs: {error}</p>}
+      {error && <p className="error">{error}</p>}
       {urls === null ? (
         !error && <p>Loading…</p>
       ) : (
@@ -68,6 +73,7 @@ export default function App() {
             <tr>
               <th>Status</th>
               <th>URL</th>
+              <th>Every</th>
               <th>Code</th>
               <th>Response time</th>
               <th>Last checked</th>
@@ -75,11 +81,12 @@ export default function App() {
               <th>Avg response ({timeWindow})</th>
               <th>Recent checks</th>
               <th>Error</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {urls.map((u) => (
-              <UrlRow key={u.id} url={u} />
+              <UrlRow key={u.id} url={u} onChanged={refresh} onError={setError} />
             ))}
           </tbody>
         </table>
