@@ -424,6 +424,60 @@
         "rejected": null
       },
       "status": "accepted"
+    },
+    {
+      "id": "D-016",
+      "date": "2026-11-07",
+      "area": "architecture",
+      "title": "Phase 1 dependency set (exact packages and versions)",
+      "decision": "Server: NuGet Microsoft.Data.Sqlite 10.0.14 and Dapper 2.1.89. Web: react ^18.3.1 and react-dom ^18.3.1 as dependencies; vite ^8.3.6 and @vitejs/plugin-react ^6.2.1 as devDependencies. Nothing else. web/package.json was written by hand. plugin-react's optional peers (@rolldown/plugin-babel, babel-plugin-react-compiler, oxc-transform-react) were left uninstalled.",
+      "alternatives": [
+        {
+          "option": "npm create vite (the React template)",
+          "whyNot": "It defaults to React 19 and adds ESLint and other extras we did not approve. We would have to remove them by hand."
+        },
+        {
+          "option": "Install plugin-react's optional peers (React Compiler, Babel)",
+          "whyNot": "We do not use them. Each one is another package to explain to the panel."
+        }
+      ],
+      "rationale": "These are exactly the packages approved under D-002, D-004 and D-005. Fewer packages means fewer lines the owner must defend.",
+      "tradeoffs": "A hand-written package.json has no lint script or editor defaults. That is fine for a small plain-JavaScript app. Version ranges are caret ranges, so package-lock.json is what pins the real versions.",
+      "plain": "We added only the packages we had already agreed on. We wrote the web package file by hand. The Vite starter adds React 19 and extra tools. We did not want those.",
+      "ai": {
+        "suggestedBy": "Claude (in the Phase 1 plan)",
+        "accepted": "The package set and hand-written scaffold, as planned. The owner approved the packages earlier in D-002, D-004 and D-005 and accepted the Phase 1 defaults in D-014.",
+        "changed": null,
+        "rejected": "The Vite React template."
+      },
+      "status": "accepted"
+    },
+    {
+      "id": "D-017",
+      "date": "2026-11-07",
+      "area": "architecture",
+      "title": "Local address: http://localhost:5080, http only, browser stays closed",
+      "decision": "The server listens on http://localhost:5080. The launch profile is http only (the https profile was deleted) and launchBrowser is false.",
+      "alternatives": [
+        {
+          "option": "Port 5000 (the .NET default)",
+          "whyNot": "macOS AirPlay Receiver uses port 5000, so the app can fail to start on a Mac."
+        },
+        {
+          "option": "Keep the https profile",
+          "whyNot": "The panel would have to trust a local development certificate before the app runs."
+        }
+      ],
+      "rationale": "This is a local demo with no login and no private data, so https adds setup but no safety. The panel only needs to open one address.",
+      "tradeoffs": "Traffic is not encrypted. That is acceptable on localhost. A real deployment would sit behind https. The README must say to open the address by hand.",
+      "plain": "The app runs at one local address. It uses http, not https. This way nobody has to trust a certificate. The browser does not open by itself.",
+      "ai": {
+        "suggestedBy": "Claude (in the Phase 1 plan)",
+        "accepted": "Port 5080, http only, no auto-open, as planned. The owner accepted the Phase 1 defaults in D-014.",
+        "changed": null,
+        "rejected": null
+      },
+      "status": "accepted"
     }
   ],
   "edgeCases": [
@@ -514,6 +568,38 @@
       "description": "Avoid downloading large bodies; only headers are needed for status.",
       "status": "deferred",
       "plain": "Some pages are very big. We only need the first part of the answer."
+    },
+    {
+      "id": "EC-012",
+      "priority": 2,
+      "title": "Node or npm missing on the machine",
+      "description": "The BuildWebUi MSBuild target runs npm on a fresh clone. If Node is not installed, the build fails with a raw npm error instead of a clear message. The README states that Node is required.",
+      "status": "deferred",
+      "plain": "The first run needs Node on the computer. If Node is missing, the error is hard to read."
+    },
+    {
+      "id": "EC-013",
+      "priority": 3,
+      "title": "Port 5080 already in use",
+      "description": "If another program holds port 5080, the server fails to start. Nothing catches this or suggests another port.",
+      "status": "deferred",
+      "plain": "If another program uses the same door number, our app cannot start."
+    },
+    {
+      "id": "EC-014",
+      "priority": 2,
+      "title": "Stale server/wwwroot after a web/src change",
+      "description": "BuildWebUi only runs npm run build when server/wwwroot/index.html is missing (D1-03). After editing web/src, the served UI stays old until npm --prefix web run build is run or wwwroot is deleted.",
+      "status": "deferred",
+      "plain": "If you change the web code, the old built page can still show. You must build again."
+    },
+    {
+      "id": "EC-015",
+      "priority": 3,
+      "title": "DNS error text depends on the operating system",
+      "description": "A failed check stores the HttpRequestException message. On macOS it reads 'nodename nor servname provided, or not known'; on Windows and Linux it differs. The text is correct but not the same everywhere.",
+      "status": "deferred",
+      "plain": "The error words for a bad web address change from one computer type to another."
     }
   ],
   "aiNotes": [
@@ -532,6 +618,10 @@
     {
       "date": "2026-11-07",
       "note": "Skipped the Phase 1 discuss step. Claude picked the defaults for layout, data model, API, seeds, check behavior, and dashboard (D-014). These are AI decisions I accepted without debate; I review them during planning."
+    },
+    {
+      "date": "2026-11-07",
+      "note": "Claude generated all Phase 1 code from the locked plan (D1-01..D1-28). It built and ran without a rewrite, so there is no bad suggestion to report. Read these two files first to own the behavior: server/UrlChecker.cs (how one check is timed and classified) and server/CheckScheduler.cs (how due URLs are picked and saved). The plan's Dapper note was right: the positional records could not be filled directly from SQLite integers, so Database.cs maps into a flat StatusRow class first."
     }
   ]
 }
