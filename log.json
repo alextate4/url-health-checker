@@ -1033,6 +1033,10 @@
     {
       "date": "2026-11-07",
       "note": "While checking pause/resume, Claude's first test sent the Content-Type header unquoted through a shell variable, so every PATCH looked like a 400; then a 404 turned out to be correct because the owner had removed URL 1 in their own instance. Both were test mistakes, not app bugs; the re-run on a live URL showed no checks while paused and a new check after resume."
+    },
+    {
+      "date": "2026-11-07",
+      "note": "The owner reported the dashboard table overflowing the screen. Claude had built the last UI rounds without looking at them. This time it ran the app on a DB copy and took headless Chrome screenshots at 1280/1440/1920 px, found the cause (a 240px one-line strip plus the full DNS error text), fixed it, and re-checked each width. A first fix still overflowed at 1280 px and needed a second pass. Lesson: screenshot UI changes before calling them done."
     }
   ]
 }
